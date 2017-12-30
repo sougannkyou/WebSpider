@@ -1,0 +1,337 @@
+{% extends 'base_backend.html' %}
+{% load static %}
+
+{% block header_tail %}
+    <style>
+        [v-cloak] {
+            display: none;
+        }
+    </style>
+{% endblock header_tail %}
+
+{% block section_content %}
+    {% verbatim %}
+    <!-- Main content -->
+    <div class="content">
+        <!-- Content Header (Page header) -->
+        <section class="content-header">
+            <h1>
+                使用说明
+                <small>可视化爬虫</small>
+            </h1>
+        </section>
+        <!-- Main content -->
+        <section class="content">
+            <img src="/static/webSpider/images/webSpider.png">
+            <!-- row -->
+            <div class="row">
+                <div class="col-md-12">
+                    <!--
+                    <ul class="timeline">
+                        <li class="time-label">
+                            <span class="bg-blue">抓取列表页</span>
+                        </li>
+                        <li>
+                            <i class="fa fa-list-ul bg-blue"></i>
+                            <div class="timeline-item">
+                                <span class="time"><i class="fa fa-clock-o"></i>第1步</span>
+                                <h3 class="timeline-header"><a href="/webSpider/hubs/">节点设定（菜单：可收缩）</a></h3>
+                                <div class="timeline-body">
+                                    如果为’root‘，将被认为是启始页。红框为必须输入项，蓝框为重要的输出项。（todo：多选，黑白名单）
+                                </div>
+                                <div class="timeline-footer">
+                                </div>
+                            </div>
+                        </li>
+                        <li>
+                            <i class="fa fa-user bg-blue"></i>
+                            <div class="timeline-item">
+                                <span class="time"><i class="fa fa-clock-o"></i>第2步</span>
+                                <h3 class="timeline-header no-border">
+                                    <a href="/webSpider/hubs/">点击选取</a>
+                                </h3>
+                                <div class="timeline-body">
+                                    单击选取，双击前进（需设定下一步进入的为列表or详情）。
+                                </div>
+                            </div>
+                        </li>
+                        <li>
+                            <i class="fa fa-floppy-o bg-blue"></i>
+                            <div class="timeline-item">
+                                <span class="time"><i class="fa fa-clock-o"></i>第3步</span>
+                                <h3 class="timeline-header"><a href="/webSpider/hubs/">查看结果</a></h3>
+                                <div class="timeline-body">
+                                    罗列匹配url及标题。
+                                </div>
+                                <div class="timeline-footer">
+                                </div>
+                            </div>
+                        </li>
+                        <li class="time-label">
+                            <span class="bg-green">抓取详情页内容</span>
+                        </li>
+                        <li>
+                            <i class="fa fa-list-ul bg-green"></i>
+                            <div class="timeline-item">
+                                <span class="time"><i class="fa fa-clock-o"></i>第1步</span>
+                                <h3 class="timeline-header"><a href="/webSpider/detail/">设定选取项目（菜单：可收缩）</a></h3>
+                                <div class="timeline-body">
+                                    点击目标为标题，内容，来源还是时间。
+                                </div>
+                            </div>
+                        </li>
+                        <li>
+                            <i class="fa fa-user bg-green"></i>
+                            <div class="timeline-item">
+                                <span class="time"><i class="fa fa-clock-o"></i>第2步</span>
+                                <h3 class="timeline-header no-border">
+                                    <a href="/webSpider/detail/">点击选取</a>
+                                </h3>
+                                <div class="timeline-body">
+                                    单击选取。
+                                </div>
+                            </div>
+                        </li>
+                        <li>
+                            <i class="fa fa-floppy-o bg-green"></i>
+                            <div class="timeline-item">
+                                <span class="time"><i class="fa fa-clock-o"></i>第3步</span>
+                                <h3 class="timeline-header"><a href="/webSpider/detail/">查看选取结果</a></h3>
+                                <div class="timeline-body">
+                                    前端抓取（实时展示），后台试抓取,结果查询及展示（todo）。
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                    -->
+                    <ul class="timeline">
+                        <li class="time-label">
+                            <span class="bg-red">Tutorials</span>
+                        </li>
+                        <li>
+                            <i class="fa fa-video-camera bg-maroon"></i>
+                            <div class="timeline-item">
+                                <h3 class="timeline-header"><a href="#">智慧星光</a> 可视化爬虫 <a
+                                        href="http://v.youku.com/v_show/id_XMjg1NDQ0MDIyOA==.html?spm=a2h3j.8428770.3416059.1">视频打不开时，请直接使用该链接。</a>
+                                </h3>
+                                <div class="timeline-body">
+                                    <div class="embed-responsive embed-responsive-16by9">
+                                        <iframe class="embed-responsive-item"
+                                                src="http://v.youku.com/v_show/id_XMjg1NDQ0MDIyOA==.html?spm=a2h3j.8428770.3416059.1"
+                                                frameborder="0"
+                                                allowfullscreen>
+                                        </iframe>
+                                        <!--
+                                        <video width="500" height="250" controls="controls" autoplay="autoplay" preload="none" src="webspider.mp4">
+                                        </video>
+                                        -->
+                                    </div>
+                                </div>
+                                <div class="timeline-footer">
+                                </div>
+                            </div>
+                        </li>
+                        <li>
+                            <i class="fa fa-file-code-o"></i>
+                            <div class="timeline-item">
+                                <div class="row" style="margin-top: 10px;">
+                                    <div class="col-md-12">
+                                        <div class="box box-primary">
+                                            <div class="box-header">
+                                                <h3 class="box-title">
+                                                    网站配置文件示例（列表页） </h3>
+                                            </div>
+                                            <div class="box-body">
+                  <pre style="font-weight: 600;">
+{
+	"description": {
+		"filename": "文件名",
+		"function": "功能",
+		"history": ["修改记录"]
+		},
+	"settings":{
+		"info_flag": "",
+		"siteName": "",
+		"site_domain": "",
+		"encoding": "",
+		"request_headers": {},
+		"proxy_enable": "",
+		"start_urls": [["url", "channel_name"]],
+		"max_interval": 3,
+		"data_db": "", # 入库地址 可选项
+	},
+	"logics":{
+		"#0": { # 入口函数 不配置则默认返回 settings.start_urls
+			"urls": [],
+			"loops": [],
+			"items": {},
+			"filters": {},
+			"callback":""
+		},
+		"#1": { # 第一级列表页解析函数
+			"urls": [],
+			"loops": [ # 循环体
+				{
+				"xpath": "//*[@id='col']/li"
+				}
+			],
+			"items": { # 循环体提取字段
+				"fields": {
+					"url": {
+						"type": "str",
+						"rules": [
+							{
+							"xpath": "//h3[@class=\"zx_list_bt zt_yh\"]/a//@href"
+							}
+							]
+						},
+					"ctime": {
+						"type": "datetime",
+						"rules": [
+							{
+							"xpath": "//span[@class=\"date\"]"
+							},
+							{
+							"regex": "(\\d+-\\d+-\\d+ \\d+:\\d+:\\d+)"
+							}
+							],
+						"date_format": "%Y-%m-%d %H:%M:%S"
+						}
+					},
+				"filters": {
+					"ctime": { # 时间过滤
+						"day": 3
+						},
+					"url":{ # 文本过滤
+						"in": [],
+						"not_in": []
+						}
+					}
+				},
+			"next_page": { # 下一页 回调自身
+				"rules":[
+						{
+						"xpath": "//h3[@class=\"zx_list_bt zt_yh\"]/a//@href"
+						}
+					],
+                "max_page": 3 # 翻页次数 必须设置
+				},
+			"callback": "#2" # 下一级回调函数
+			},
+		"#2":{
+			"urls":[],
+			"loops": [],
+			"items": {},
+			"filters":{},
+			"callback":"" # 无回调 则调用详情页解析函数
+		}
+	},
+	"fields":{ # 详情页解析函数
+		"title": {
+			"type": "str",#　字段类型　 仅支持 str, datetime, int, const
+			"rules": [
+				{
+				"xpath": "//h1[@class=\"bt\"]/text()"
+				}
+			],
+			"default": "", # 字段默认值
+			"not": "" # 字段值为空是否丢弃本条数据 值为1则丢弃
+		},
+		"content": {  # todo 多块拼接
+			"type": "str",
+			"rules": [
+				{
+				"xpath": "//*[@id='Cnt-Main-Article-hdzc']"
+				}
+			],
+			"default": "$title",
+			"not": "",
+            "is_multi": 0 # 是否为多段拼接 是则将rules中规则按顺序独立提取 自动将xpath 转为xpathall, regex 同 xpath  并拼接结果
+		},
+		"ctime": {
+			"type": "datetime",
+			"rules": [
+				{"xpath": "//span[@class=\"ly\"][3]/text()"}
+			],
+			"default": "$now",
+			"date_format": "%Y-%m-%d %H:%M:%S",
+			"not": ""
+		},
+		"pic_urls": {
+			"type": "list",
+			"rules": [
+				{"xpath": "//span[@class=\"ly\"][3]/text()"}
+			],
+			"default": "$list",
+			"not": ""
+		},
+		"const_test": { # 常量值测试 仅支持字符串常量
+			"type": "const",
+			"default": "123456"
+		},
+		"clear_xpath": { # 清理html 页面解析之前
+			"rules": [
+				{"xpath": "//script"}
+			]
+		},
+		"clear_content": { # 清理正文 content内容
+			"rules": [
+				{"xpath": "//script"},
+				{"regex": ""},
+				{"replace": "无用字符"}
+			]
+		},
+		"next_page": { # 正文翻页 规则只有一个则按照xpathall处理  多个规则则按照xpath处理
+			"rules": [
+			]
+		}
+
+	},
+	"test": {
+		"list_page_url": "",
+		"detail_page_url": ""
+	}
+}
+
+默认值支持
+	$now 当前时间
+	$siteName 当前时间
+	$meta 从列表页字段中获取
+	$某个字段名 从当前作用域中寻找
+
+
+
+                  </pre>
+                                            </div>
+                                            <!-- /.box-body -->
+                                        </div>
+                                        <!-- /.box -->
+                                    </div>
+                                    <!-- /.col -->
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <!-- /.row -->
+        </section>
+        <!-- /.content -->
+    </div>
+    <!-- Main end. -->
+    {% endverbatim %}
+{% endblock section_content %}
+
+{% block jquery_js %}
+    <!-- vue.js -->
+    <script type="text/javascript" src="{% static 'plugins/vue1/vue.js' %}"></script>
+    <script type="text/javascript" src="{% static 'backend/webSpider/js/vue_filter.js' %}"></script>
+{% endblock jquery_js %}
+
+{% block body_tail %}
+    <script type="text/javascript" src="{% static 'backend/js/csrf.js' %}"></script>
+    <script type="text/javascript" src="{% static 'backend/js/util.js' %}"></script>
+    <script type="text/javascript">
+
+    </script>
+{% endblock body_tail %}

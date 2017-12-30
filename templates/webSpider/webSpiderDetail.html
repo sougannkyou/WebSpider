@@ -1,0 +1,977 @@
+{% extends 'base_backend_frameless.html' %}
+{% load static %}
+
+{% block header_tail %}
+    <style>
+        [v-cloak] {
+            display: none;
+        }
+
+        body {
+            background-color: #eee;
+        }
+
+        div, input, iframe {
+            border-radius: 5px;
+        }
+
+        img.loading {
+            margin-top: 400px;
+            margin-left: 800px;
+            width: 50px;
+            height: 50px;
+        }
+
+        input {
+            padding: 2px 0 2px 10px;
+            line-height: 100%;
+        }
+
+        h3, h4 {
+            display: inline
+        }
+
+        hr {
+            margin-top: 5px;
+            margin-bottom: 5px
+        }
+
+        a.btn-nav {
+            margin: 2px;
+        }
+
+        a.nav-chart {
+            border-radius: 20px;
+        }
+
+        a.nav-mark {
+            outline: blue solid 2px;
+        }
+
+        iframe {
+            width: 95%;
+            height: 700px;
+            margin-left: 100px;
+            border: 1px dashed forestgreen;
+        }
+
+        .iframe-full {
+            width: 95%;
+            height: 840px;
+            margin-left: 100px;
+            margin-bottom: 2px;
+            border: 1px dashed forestgreen;
+        }
+
+        .menu {
+            position: absolute;
+            left: 10px;
+            top: 120px;
+            background-color: palegreen;
+            width: 95px;
+            height: 380px;
+            border-radius: 7px;
+            border: 2px solid palegreen;
+        }
+
+        .required {
+            border: 1px dashed red;
+        }
+
+        .debug {
+            border: 2px dashed red;
+        }
+
+        .xpath-list {
+            height: 170px;
+            overflow-y: scroll;
+            border: 1px solid forestgreen;
+        }
+
+        .plus {
+            border: 2px solid forestgreen;
+        }
+
+        .important {
+            border: 2px dashed green;
+        }
+
+        .-sitemap-select-item-hover {
+            outline: 2px solid green !important;
+            background-color: rgba(0, 213, 0, 0.20) !important;
+            background: rgba(0, 213, 0, 0.20) !important;
+        }
+
+        .-sitemap-select-item-hover * {
+            background-color: rgba(0, 213, 0, 0.20) !important;
+            background: rgba(0, 213, 0, 0.20) !important;
+        }
+    </style>
+{% endblock header_tail %}
+
+{% block section_content %}
+    {% verbatim %}
+    <!-- Main start -->
+    <div id="main" class="inverse" v-cloak>
+        <div class="box box-success">
+            <div class="box-inner">
+                <div class="box-header with-border" style="border-color:seagreen;height:50px;padding-top:7px;">
+                    <div class="form-group col-md-11">
+                        <h4>当前地址&nbsp;&nbsp;</h4>
+                        <input type="text" v-model="detail_url" style="height:35px;width:90%"
+                               placeholder="详情页url" readonly>
+                    </div>
+                    <div class="form-group pull-right">
+                        <!-- navigator -->
+                        <navigator v-bind:main_show="false"
+                                   v-bind:task_id="taskId"
+                                   v-bind:has_detail="hasDetail"
+                                   v-bind:levels="navInfo.levels">
+                        </navigator>
+                        <!-- navigator -->
+                    </div>
+                </div>
+                <div class="box-body" style="padding: 10px 30px 30px 10px;">
+                    <div class="menu">
+                        <h5>&nbsp;&nbsp;详情页设定</h5>
+                        <hr>
+                        <div style="margin-left: 5px;margin-right: 5px;">
+                            <input v-model="select_item" name="item" type="radio" value="title"
+                                   checked>&nbsp;标题</input><br>
+                            <input v-model="select_item" name="item" type="radio" value="source">&nbsp;来源</input>
+                            <br>
+                            <input v-model="select_item" name="item" type="radio"
+                                   value="retweeted_source">&nbsp;转发来源</input>
+                            <br>
+                            <input v-model="select_item" name="item" type="radio" value="channel">&nbsp;频道</input>
+                            <br>
+                            <input v-model="select_item" name="item" type="radio" value="ctime">&nbsp;时间</input>
+                            <br>
+                            <input v-model="select_item" name="item" type="radio" value="content">&nbsp;内容</input>
+                            <input v-model="isMultiContent" name="isMultiContent" type="checkbox"
+                                   value="isMultiContent">多</input><br>
+                            <input v-model="select_item" name="item" type="radio" value="pic_urls">&nbsp;图片</input>
+                            <input v-model="isMultiPic" name="isMultiPic" type="checkbox"
+                                   value="isMultiPic">多</input><br>
+                            <hr>
+                            <input v-model="isXPathShow" name="xpath" type="checkbox" value="isXPathShow">
+                            xpath</input><br>
+                            <input v-model="isDebugShow" name="debug" type="checkbox" value="isDebugShow">
+                            调试</input><br>
+                            <input v-model="isLoadJS" name="loadJS" type="checkbox" value="isLoadJS">
+                            加载js</input>
+                            <hr>
+                            <button v-on:click="save" class="btn btn-md btn-success"
+                                    style="margin-top:5px;margin-left:10px">保&nbsp;存
+                            </button>
+                            <button v-on:click="makeCode" class="btn btn-md btn-success"
+                                    style="margin-top:5px;">生成代码
+                            </button>
+                            <!--
+                            <button v-on:click="reloadPage('')" class="btn btn-xs btn-success"
+                                    style="margin-top:5px;">重新加载
+                            </button>
+                            -->
+                        </div>
+                    </div>
+                    <!-- webSpider -->
+                    <iframe id="html" sandbox="allow-same-origin allow-scripts"
+                            v-bind:class="[ !isXPathShow && !isDebugShow ? 'iframe-full' : '']"
+                            srcdoc="[[ html_src ]]">
+                    </iframe>
+                    <!-- eSpider
+                    <iframe id="html" sandbox="allow-same-origin allow-scripts"
+                            v-bind:class="[ !isXPathShow && !isDebugShow ? 'iframe-full' : '']"
+                            v-bind:src="detail_url">
+                    </iframe>
+                    -->
+                </div>
+                <div class="box-footer with-border" v-show="isXPathShow || isDebugShow"
+                     style="border-color:seagreen;position:fixed;bottom:10px;width:98.5%;padding:10px 20px 20px 10px;">
+                    <div v-show="isDebugShow" class="input-group col-md-12" style="margin-bottom:5px;">
+                        <button v-on:click="debug" class="btn btn-danger pull-left">查看匹配结果</button>
+                        <input class="debug col-md-11" value="[[ debug_xpath ]]" v-model="debug_xpath"
+                               style="height:35px;" placeholder="请输入xpath,点击“查看匹配结果”按钮。">
+                    </div>
+                    <div v-show="isPlusShow" class="input-group col-md-12" style="margin-bottom:5px;">
+                        <button v-on:click="add_xpath" class="btn btn-warning pull-left">
+                            &nbsp;&nbsp;&nbsp;&nbsp;增&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;加&nbsp;&nbsp;&nbsp;&nbsp;
+                        </button>
+                        <input class="plus col-md-11" value="[[ plus_xpath ]]" style="height:35px;"
+                               v-model="plus_xpath" placeholder="请点击元素，增加 << [[ select_item ]] >> 的xpath。">
+                    </div>
+                    <div v-show="isXPathShow" class="xpath-list">
+                        <div class="input-group col-md-12">
+                            <span class="input-group-addon" style="background-color:palegreen;">
+                                <span v-on:click="select('title')">标题</span>
+                                <i class="fa fa-fw fa-plus-circle" v-on:click="plus('title')" style="size:20px;"></i>
+                                <span class="badge" title="[[ title_text ]]">[[ title_text | hasInfo ]]</span>
+                            </span>
+                            <input type="text" v-model="title_xpath" value="[[ title_xpath ]]"
+                                   v-bind:class="[ select_item == 'title' ? 'important form-control' : 'form-control']">
+                            <!--
+                            <span class="input-group-addon">选择器</span>
+                            <input type="text" v-model="title_jquery" value="[[ title_jquery ]]"
+                                   class="form-control">
+                                   -->
+                        </div>
+                        <div class="input-group col-md-12">
+                            <span class="input-group-addon" style="background-color:limegreen;">
+                                <span v-on:click="select('source')">来源</span>
+                                <i class="fa fa-fw fa-plus-circle" v-on:click="plus('source')"></i>
+                                <span class="badge" title="[[ source_text ]]">[[ source_text| hasInfo ]]</span>
+                            </span>
+                            <input type="text" v-model="source_xpath" value="[[ source_xpath ]]"
+                                   v-bind:class="[ select_item == 'source' ? 'important form-control' : 'form-control']">
+                            <!--
+                            <span class="input-group-addon">选择器</span>
+                            <input type="text" v-model="source_jquery" value="[[ source_jquery ]]"
+                                   class="form-control">
+                                   -->
+                        </div>
+                        <div class="input-group col-md-12">
+                            <span class="input-group-addon" style="background-color:yellowgreen;">
+                                <span v-on:click="select('retweeted_source')">转发来源</span>
+                                <i class="fa fa-fw fa-plus-circle" v-on:click="plus('retweeted_source')"></i>
+                                <span class="badge" title="[[ retweeted_source_text ]]">[[ retweeted_source_text| hasInfo ]]</span>
+                            </span>
+                            <input type="text" v-model="retweeted_source_xpath" value="[[ retweeted_source_xpath ]]"
+                                   v-bind:class="[ select_item == 'retweeted_source' ? 'important form-control' : 'form-control']">
+                            <!--
+                            <span class="input-group-addon">选择器</span>
+                            <input type="text" v-model="retweeted_source_jquery"
+                                   value="[[ retweeted_source_jquery ]]"
+                                   class="form-control">
+                                   -->
+                        </div>
+                        <div class="input-group col-md-12">
+                            <span class="input-group-addon" style="background-color:springgreen;">
+                                <span v-on:click="select('channel')">频道</span>
+                                <i class="fa fa-fw fa-plus-circle" v-on:click="plus('channel')"></i>
+                                <span class="badge" title="[[ channel_text ]]">[[ channel_text| hasInfo ]]</span>
+                            </span>
+                            <input type="text" v-model="channel_xpath" value="[[ channel_xpath ]]"
+                                   v-bind:class="[ select_item == 'channel' ? 'important form-control' : 'form-control']">
+                            <!--
+                            <span class="input-group-addon">选择器</span>
+                            <input type="text" v-model="channel_jquery"
+                                   value="[[ channel_jquery ]]"
+                                   class="form-control">
+                             -->
+                        </div>
+                        <div class="input-group col-md-12">
+                            <span class="input-group-addon" style="background-color:seagreen;">
+                                <span v-on:click="select('ctime')">时间</span>
+                                <i class="fa fa-fw fa-plus-circle" v-on:click="plus('ctime')"></i>
+                                <span class="badge" title="[[ ctime_text ]]">[[ ctime_text| hasInfo ]]</span>
+                            </span>
+                            <input type="text" v-model="ctime_xpath" value="[[ ctime_xpath ]]"
+                                   v-bind:class="[ select_item == 'ctime' ? 'important form-control' : 'form-control']">
+                            <!--
+                            <span class="input-group-addon">选择器</span>
+                            <input type="text" v-model="ctime_jquery" value="[[ ctime_jquery ]]"
+                                   class="form-control">
+                             -->
+                        </div>
+                        <div class="input-group col-md-12">
+                                <span class="input-group-addon" style="background-color:lawngreen;">
+                                    <span v-on:click="select('content')">内容</span>
+                                    <i class="fa fa-fw fa-plus-circle" v-on:click="plus('content')"></i>
+                                    <span class="badge" title="[[ content_text ]]">[[ content_text | hasInfo ]]</span>
+                                </span>
+                            <input type="text" v-model="content_xpath" value="[[ content_xpath ]]"
+                                   v-bind:class="[ select_item == 'content' ? 'important form-control' : 'form-control']">
+                            <!--
+                            <span class="input-group-addon">正则替换<i class="fa fa-fw fa-minus-circle"></i></span>
+                            <input type="text" v-model="clear_content.regex" value="[[ clear_content.regex ]]"
+                                   class="form-control">
+                            <span class="input-group-addon">无用字符<i class="fa fa-fw fa-minus-circle"></i></span>
+                            <input type="text" v-model="clear_content.replace" value="[[ clear_content.replace ]]"
+                                   class="form-control">
+                           -->
+                        </div>
+                        <div class="input-group col-md-12">
+                            <span class="input-group-addon" style="background-color:limegreen;">
+                                <span v-on:click="select('pic_urls')">图片</span>
+                                <i class="fa fa-fw fa-plus-circle" v-on:click="plus('pic_urls')"></i>
+                                <span class="badge" title="匹配图片数量">[[ pic_cnt ]]张</span>
+                            </span>
+                            <input type="text" v-model="pic_urls_xpath" value="[[ pic_urls_xpath ]]"
+                                   v-bind:class="[ select_item == 'pic_urls' ? 'important form-control' : 'form-control']">
+                            <!--
+                            <span class="input-group-addon">选择器</span>
+                            <input type="text" v-model="pic_urls_jquery" value="[[ pic_urls_jquery ]]"
+                                   class="form-control">
+                             -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endverbatim %}
+    <!-- Main end. -->
+    <!-- loading start -->
+    <div id="loadingModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+         data-backdrop="static" data-keyboard="false">
+        <!-- eSpider ./static/images/loading.gif -->
+        <img src="/static/webSpider/images/loading.gif" class="loading">
+    </div>
+    <!-- loading end. -->
+{% endblock section_content %}
+
+{% block jquery_js %}
+    <!-- vue.js -->
+    <script type="text/javascript" src="{% static 'plugins/vue1/vue.js' %}"></script>
+{% endblock jquery_js %}
+
+{% block body_tail %}
+    <script type="text/javascript" src="{% static 'webSpider/js/csrf.js' %}"></script>
+    <script type="text/javascript" src="{% static 'webSpider/js/common.js' %}"></script>
+    <script type="text/javascript" src="{% static 'webSpider/js/selector.js' %}"></script>
+    <script type="text/javascript" src="{% static 'webSpider/js/vue_component.js' %}"></script>
+    <script type="text/javascript" src="{% static 'webSpider/js/vue_filter.js' %}"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            if (window.localStorage.getItem('ELECTRON_START')) { // 客户端版跳过下面步骤
+                console.log("eSpider启动: detail");
+            } else {
+                console.log("webSpider启动: detail");
+
+                var taskId = getQueryString("taskId");
+                if (isNullOrEmpty(taskId)) {
+                    alert("taskId不能为空！");
+                    return false;
+                } else {
+                    mainVue.taskId = parseInt(taskId);
+                }
+            }
+        });
+
+        function getDetailUrlByTaskId(obj) {
+            var detail_url = window.localStorage.getItem(obj.taskId);
+            if (!isNullOrEmpty(detail_url)) {
+                obj.detail_url = detail_url;
+            } else {
+                var opt = {
+                    url: HOST + '/webSpider/detailXPathAPI/',
+                    type: 'GET',
+                    data: {
+                        taskId: obj.taskId
+                    },
+                    dataType: "json",
+                    error: function (xhr, err) {
+                        alert("[xpath] detailXPathAPI GET", err);
+                    },
+                    success: function (data, status) {
+                        console.log("[xpath] detailXPathAPI get:", data['detail_url']);
+                        if (!isNullOrEmpty(data['detail_url'])) {
+                            obj.detail_url = data['detail_url'];
+                        }
+                    }
+                };
+                send(opt);
+            }
+        }
+
+        (function ($) {  // xpath选择器
+            $.fn.getQuery = function () {
+                var xpath = getXPath(this, '');
+                //console.log("[xpath] getQuery", xpath);
+
+                var full_xpath = getFullXPath(this, '');
+                var clear_jquery_selector = getClearJQSelector(this, '');
+                var jquery_selector = getJQSelector(this, '');
+                var css_selector = getCSSSelector(this, '');
+                //jquery_selector = "body " + jquery_selector;
+                //var selector = xpath.replaceAll('/', '>').replaceAll('\\[', ':eq(').replaceAll('\\]', ')').replaceAll('\\:eq\\(\\@', '[').replaceAll('\'\\)', '\']');
+                ret = {
+                    element: this,
+                    xpath: '//' + xpath.replace(/\/tbody\//g, "//"),
+                    css_selector: css_selector.replace(/> tbody >/g, ""),
+                    full_xpath: full_xpath.replace(/\/tbody\//g, "//"),
+                    jquery_selector: jquery_selector.replace(/\/tbody\//g, "//"),
+                    clear_jquery_selector: clear_jquery_selector.replace(/> tbody >/g, "")
+                };
+                return ret
+            };
+        })(jQuery);
+
+        function Selector(e) { // 单击选取
+            e = e || window.event;
+            var target = e.target || e.srcElement;
+            return $(target).getQuery();
+        }
+
+        function _clearInfo(obj) {
+            obj.multi_select = "single";
+            obj.select_item = "title";
+
+            obj.title_xpath = "";
+            obj.title_jquery = "";
+            obj.title_text = "";
+
+            obj.content_xpath = "";
+            obj.content_jquery = "";
+            obj.content_text = "";
+            obj.clear_content.regex = "";
+            obj.clear_content.replace = "";
+
+            obj.source_xpath = "";
+            obj.source_jquery = "";
+            obj.source_text = "";
+
+            obj.retweeted_source_xpath = "";
+            obj.retweeted_source_jquery = "";
+            obj.retweeted_source_text = "";
+
+            obj.channel_xpath = "";
+            obj.channel_jquery = "";
+            obj.channel_text = "";
+
+            obj.ctime_xpath = "";
+            obj.ctime_jquery = "";
+            obj.ctime_text = "";
+
+            obj.pic_urls_xpath = "";
+            obj.pic_urls_jquery = "";
+        }
+
+        function restoreDetail(obj) {
+            console.log("[xpath] restoreDetail", obj.start_url);
+            var opt = {
+                url: HOST + '/webSpider/restoreDetailAPI/',
+                type: 'GET',
+                data: {
+                    taskId: obj.taskId
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    callError("[xpath] restoreDetailAPI GET", err);
+                },
+                success: function (data, status) {
+                    console.log("[xpath] restoreDetail recv:", data['ret']);
+                    $('#loadingModal').modal('hide');
+
+                    if (isNullOrEmpty(data['ret'])) {
+                        if (isDiscuz()) {
+                            if (confirm("检测到这是一个Discuz论坛，使用推荐XPath?")) {
+                                $('#loadingModal').modal('hide');
+
+                                obj.title_xpath = '//*[@id="thread_subject"]';
+                                matchXPath(obj.title_xpath, "background-color", "palegreen");
+
+                                obj.content_xpath = '(//td[@class="t_f"])[1]';
+                                matchXPath(obj.content_xpath, "background-color", "lawngreen");
+
+                                obj.source_xpath = '(//div[@class="authi"])[1]//a';
+                                matchXPath(obj.source_xpath, "background-color", "limegreen");
+
+                                obj.retweeted_source_xpath = "";
+                                matchXPath(obj.retweeted_source_xpath, "background-color", "yellowgreen");
+
+                                obj.channel_xpath = '//div[@id="pt"]//a[last()-1]/text()';
+                                matchXPath(obj.channel_xpath, "background-color", "springgreen");
+
+                                obj.ctime_xpath = '(//*[contains(@id,"authorposton")])[1]';
+                                matchXPath(obj.ctime_xpath, "background-color", "seagreen");
+
+                                obj.pic_urls_xpath = '(//td[@class="t_f"])[1]//img';
+                            }
+                        }
+                    } else {
+                        //obj.isLoadJS = data['ret']['isLoadJS'];
+                        obj.title_xpath = data['ret']['title_xpath'];
+                        matchXPath(obj.title_xpath, "background-color", "palegreen");
+
+                        obj.source_xpath = data['ret']['source_xpath'];
+                        matchXPath(obj.source_xpath, "background-color", "limegreen");
+
+                        obj.retweeted_source_xpath = data['ret']['retweeted_source_xpath'];
+                        matchXPath(obj.retweeted_source_xpath, "background-color", "yellowgreen");
+
+                        obj.channel_xpath = data['ret']['channel_xpath'];
+                        matchXPath(obj.channel_xpath, "background-color", "springgreen");
+
+                        obj.ctime_xpath = data['ret']['ctime_xpath'];
+                        matchXPath(obj.ctime_xpath, "background-color", "seagreen");
+
+                        obj.content_xpath = data['ret']['content_xpath'];
+                        matchXPath(obj.content_xpath, "background-color", "lawngreen");
+
+                        obj.clear_content.regex = data['ret']['clear_content']['regex'];
+                        obj.clear_content.replace = data['ret']['clear_content']['replace'];
+
+                        obj.pic_urls_xpath = data['ret']['pic_urls_xpath'];
+                    }
+                }
+            };
+
+            send(opt);
+        }
+
+        function loadHtml(obj) {
+            if (window.localStorage.getItem('ELECTRON_START')) {
+                eSpider_loadHtml(obj); // 客户端版
+            } else {
+                webSpider_loadHtml(obj); // web版
+            }
+        }
+
+        function eSpider_loadHtml(obj) { // --- eSpider ----
+            $('#loadingModal').modal('show');
+            _clearInfo(obj);
+            _getNavInfo(obj);
+
+            $("#html").on({
+                load: function () {
+                    restoreDetail(obj);
+                }
+            });
+        }
+
+        function webSpider_loadHtml(obj) { // ---- webSpider ----
+            $('#loadingModal').modal('show');
+            var opt = {
+                url: HOST + '/webSpider/getLoadJSAPI/',
+                type: 'GET',
+                data: {
+                    hub_detail: 'detail',
+                    taskId: obj.taskId
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    callError("[xpath] loadHtml GET", err);
+                },
+                success: function (data, status) {
+                    console.log("[xpath] loadHtml", data);
+                    obj.isLoadJS = obj.isLoadJS || data["isLoadJS"];
+                    _loadHtml(obj);
+                }
+            };
+
+            send(opt);
+        }
+
+        function _loadHtml(obj) {
+            console.log("[xpath] _loadHtml start");
+            var opt = {
+                url: HOST + '/webSpider/getHtmlAPI/',
+                type: 'GET',
+                data: {
+                    url: obj.detail_url,
+                    load_js: obj.isLoadJS,
+                    taskId: obj.taskId,
+                    type: 'detail',
+                    level: obj.level
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    callError("snapshot GET", err);
+                },
+                success: function (data, status) {
+                    _clearInfo(obj);
+                    _getNavInfo(obj);
+                    obj.encoding = data["encoding"];
+                    obj.html_src = data["html"];
+                    $("#html").on({
+                        load: function () {
+                            restoreDetail(obj);
+                        }
+                    });
+                }
+            };
+
+            send(opt);
+        }
+
+        function saveXGSJ(obj) {
+            var opt = {
+                url: '/webSpider/mainAPI/',
+                type: 'GET',
+                dataType: 'json',
+                data: {
+                    'taskId': obj.taskId
+                },
+                error: function (xhr, err) {
+                    alert("保存到星光数据平台失败！");
+                    console.error('[xpath] saveXGSJ mainAPI', err);
+                },
+                success: function (data, status) {
+                    var xgsjTaskId = data['ret']['xgsjTaskId'];
+                    console.log("[xpath] saveXGSJ xgsjTaskId:", xgsjTaskId);
+                    var xgsj_opt = {
+                        url: '/webSpider/saveXGSJAPI/', // 通知星光数据做保存操作。
+                        type: 'GET',
+                        dataType: 'json',
+                        data: {
+                            xgsjTaskId: xgsjTaskId
+                        },
+                        error: function (xhr, err) {
+                            alert("保存到星光数据平台失败！");
+                            console.error('[xpath] saveXGSJ error', err);
+                        },
+                        success: function (data, status) {
+                            console.log('[xpath] saveXGSJ success', data);
+                        }
+                    };
+                    send(xgsj_opt);
+                }
+            };
+            send(opt);
+        }
+
+        function save(obj) {
+            console.log("[xpath] save", obj);
+            if (obj.navInfo.gotoDetailId === "") {
+                alert("未提供来自哪个列表页的信息，不能保存。");
+                return false;
+            }
+
+            var opt = {
+                url: HOST + '/webSpider/detailXPathAPI/',
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'user_id': obj.user_id,
+                    'taskId': obj.taskId,
+                    'encoding': obj.encoding,
+                    'start_url': obj.start_url,
+                    'detail_url': obj.detail_url,
+                    'isLoadJS': obj.isLoadJS,
+                    'title_xpath': obj.title_xpath,
+                    'title_jquery': obj.title_jquery,
+                    'content_xpath': obj.content_xpath,
+                    'content_jquery': obj.content_jquery,
+                    'clear_content': JSON.stringify(obj.clear_content),
+                    'ctime_xpath': obj.ctime_xpath,
+                    'ctime_jquery': obj.ctime_jquery,
+                    'source_xpath': obj.source_xpath,
+                    'source_jquery': obj.source_jquery,
+                    'retweeted_source_xpath': obj.retweeted_source_xpath,
+                    'retweeted_source_jquery': obj.retweeted_source_jquery,
+                    'channel_xpath': obj.channel_xpath,
+                    'channel_jquery': obj.channel_jquery,
+                    'pic_urls_xpath': obj.pic_urls_xpath,
+                    'pic_urls_jquery': obj.pic_urls_jqueryh,
+                    'page_xpath': obj.page_xpath,
+                    'page_jquery': obj.page_jquery
+                },
+                error: function (xhr, err) {
+                    console.error('[xpath save post]\n' + err);
+                },
+                success: function (data, status) {
+                    var ret = data['ret'];
+                    var msg = data['msg'];
+                    _getNavInfo(obj);
+                    saveXGSJ(obj);
+                    alert('保存成功,请点击生成代码。');
+                }
+            };
+
+            send(opt);
+        }
+
+        $('iframe').on({
+            load: function () {
+                var org_style = "";
+                var selector = "";
+                var my_timer;
+                $(this).contents().find("body").on('mouseover', function (event) {
+                    var body = $(this);
+                    window.clearTimeout(my_timer);
+                    my_timer = window.setTimeout(function () {
+                        ret = Selector(event);
+                        selector = ret.css_selector;
+                        org_style = body.find(ret.css_selector).css("outline");
+                        body.find(ret.css_selector).css("outline", "2px dashed blue");
+                        return false;
+                    }, 300);
+                });
+
+                $(this).contents().find("body").on('mouseout', function (event) {
+                    window.clearTimeout(my_timer);
+                    ret = Selector(event);
+                    selector = ret.css_selector;
+                    $(this).find(selector).css("outline", org_style);
+                    return false;
+                });
+
+                // 单击选取
+                $(this).contents().find("body").on('click', function (event) {
+                    event.stopPropagation();
+                    event.preventDefault();
+
+                    ret = Selector(event);
+                    selector = ret.css_selector;
+                    //console.log("[xpath on click]", ret);
+                    if (mainVue.isPlusShow) {
+                        switch (mainVue.select_item) { // 打补丁
+                            case "content":
+                                if (mainVue.isMultiContent && getLastTarget(ret.xpath) === "p") {
+                                    ret.xpath = ret.xpath.replace(/\/p\[\d+\]$/, '');  // 去掉 p[1]
+                                    selector = selector.replace(/ \> p\:nth-child\(\d+\)$/, '');  //去掉 > p:nth-child(1)
+                                }
+                                break;
+                            case "pic_urls":
+                                if (mainVue.isMultiPic && getLastTarget(ret.full_xpath) === "img") {
+                                    var xp = ret.full_xpath;
+                                    xp = xp.replace(/img\[.*?\]/g, 'img');  // 去掉 img的属性
+                                    ret.full_xpath = xp.replace(/\/p\[\d+\]\/img/, '/p/img');  // 去掉 /p[2]/img 中[2]
+                                    ret.xpath = xp.replace(/\/div\[\d+\]\/img/, '/div/img');  // 去掉 /div[2]/img 中[2]
+
+                                    selector = selector.replace(/ \> img.*?$/, '> img');
+                                    selector = selector.replace(/ \> p\:nth-child\(\d+\)> img/, '> p> img');
+                                    selector = selector.replace(/ \> div\:nth-child\(\d+\)> img/, '> div> img');
+                                }
+                                break;
+                        }
+                        mainVue.plus_xpath = ret.xpath;
+                        mainVue.plus_jquery = selector;
+                    } else {
+                        switch (mainVue.select_item) {
+                            case "title":
+                                mainVue.title_xpath = ret.xpath;
+                                break;
+                            case "content":
+                                if (mainVue.isMultiContent && getLastTarget(ret.xpath) === "p") {
+                                    ret.xpath = ret.xpath.replace(/\/p\[\d+\]$/, '');  // 去掉 p[1]
+                                    selector = selector.replace(/ \> p\:nth-child\(\d+\)$/, '');  //去掉 > p:nth-child(1)
+                                }
+                                mainVue.content_xpath = ret.xpath;
+                                break;
+                            case "source":
+                                mainVue.source_xpath = ret.xpath;
+                                break;
+                            case "retweeted_source":
+                                mainVue.retweeted_source_xpath = ret.xpath;
+                                break;
+                            case "channel":
+                                mainVue.channel_xpath = ret.xpath;
+                                break;
+                            case "ctime":
+                                mainVue.ctime_xpath = ret.xpath;
+                                break;
+                            case "pic_urls":
+                                if (mainVue.isMultiPic && getLastTarget(ret.full_xpath) === "img") {
+                                    var xp = ret.full_xpath;
+                                    xp = xp.replace(/img\[.*?\]/g, 'img');  // 去掉 img的属性
+                                    ret.full_xpath = xp.replace(/\/p\[\d+\]\/img/, '/p/img');  // 去掉 /p[2]/img 中[2]
+                                    ret.full_xpath = xp.replace(/\/div\[\d+\]\/img/, '/div/img');  // 去掉 /div[2]/img 中[2]
+
+                                    selector = selector.replace(/ \> img.*?$/, '> img');
+                                    selector = selector.replace(/ \> p\:nth-child\(\d+\)> img/, '> p> img');
+                                    selector = selector.replace(/ \> div\:nth-child\(\d+\)> img/, '> div> img');
+                                }
+                                mainVue.pic_urls_xpath = ret.full_xpath;
+                                break;
+                        }
+                    }
+
+                    $(this).find(selector).css("outline", "2px dashed green");
+                    //$(this).find(ret.jquery_selector).addClass("-sitemap-select-item-hover");
+                    //console.log("[xpath load] find", $(this).find(selector));
+
+                    return false;
+                });
+            }
+        });
+
+        function makeCode(obj) {
+            obj.msg = "正在提取json，生成代码 ... ";
+
+            var opt = {
+                url: HOST + '/webSpider/makeJsonAndCodeAPI/',
+                type: 'GET',
+                data: {
+                    taskId: obj.taskId
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    console.error("[xpath] makeJsonAndCodeAPI", err);
+                },
+                success: function (data, status) {
+                    console.log("[xpath] makeJsonAndCodeAPI", data);
+                    if (data['node_list_is_one_single']) {
+                        alert("目前不支持仅有一级列表且为单选的方式。");
+                        return false;
+                    }
+                    navTo('test', obj.taskId, -1);
+                }
+            };
+
+            send(opt);
+        }
+
+        //----------------------------------------------------------------------------
+        Vue.config.delimiters = ['[[', ']]'];
+        //----------------------------------------------------------------------------
+        var mainVue = new Vue({
+            el: "#main",
+            data: {
+                taskId: -1,
+                xgsjTaskId: -1,
+                user_id: "admin",
+                start_url: "",
+                detail_url: "",
+                html_src: "",
+                navInfo: {'levels_cnt': 0, 'levels': []}, // hubs共同
+                hasDetail: false,
+                encoding: "utf8",
+                multi_select: "single",
+                select_item: "title", // "content","source","ctime"
+
+                title_xpath: "",
+                title_jquery: "",
+                title_text: "",
+
+                content_xpath: "",
+                content_jquery: "",
+                content_text: "",
+                clear_content: {regex: "", replace: ""},
+
+                source_xpath: "",
+                source_jquery: "",
+                source_text: "",
+
+                retweeted_source_xpath: "",
+                retweeted_source_jquery: "",
+                retweeted_source_text: "",
+
+                channel_xpath: "",
+                channel_jquery: "",
+                channel_text: "",
+
+                ctime_xpath: "",
+                ctime_jquery: "",
+                ctime_text: "",
+
+                pic_urls_xpath: "",
+                pic_urls_jquery: "",
+                pic_cnt: 0,
+
+                // debug
+                debug_xpath: "",
+                debug_selector: "",
+
+                // plus
+                plus_xpath: "",
+                plus_selector: "",
+                plus_jquery: "",
+
+                isXPathShow: true,
+                isDebugShow: false,
+                isPlusShow: false,
+                isMultiContent: true,
+                isMultiPic: true,
+                isLoadJS: false,
+                msg: ""
+            },
+            methods: {
+                ready: function () {
+                },
+                save: function () {
+                    save(this);
+                },
+                makeCode: function () {
+                    makeCode(this);
+                },
+                select: function (item) {
+                    this.select_item = item;
+                    this.isPlusShow = false;
+                },
+                reloadPage: function () {
+                    loadHtml(this);
+                },
+                debug: function () {
+                    debugXPath(this.debug_xpath);
+                },
+                plus: function (item) {
+                    this.isPlusShow = true;
+                    this.select_item = item;
+                    this.plus_xpath = "";
+                    this.plus_jquery = "";
+                },
+                add_xpath: function () {
+                    if (isNullOrEmpty(this.plus_xpath)) {
+                        return;
+                    }
+                    switch (this.select_item) {
+                        case "title":
+                            this.title_xpath += " | " + this.plus_xpath;
+                            //this.title_jquery += " , " + this.plus_jquery;
+                            break;
+                        case "content":
+                            this.content_xpath += " | " + this.plus_xpath;
+                            //this.content_jquery += " , " + this.plus_jquery;
+                            break;
+                        case "source":
+                            this.source_xpath += " | " + this.plus_xpath;
+                            //this.source_jquery += " , " + this.plus_jquery;
+                            break;
+                        case "retweeted_source":
+                            this.retweeted_source_xpath += " | " + this.plus_xpath;
+                            //this.retweeted_source_jquery += " , " + this.plus_jquery;
+                            break;
+                        case "channel":
+                            this.channel_xpath += " | " + this.plus_xpath;
+                            //this.channel_jquery += " , " + this.plus_jquery;
+                            break;
+                        case "ctime":
+                            this.ctime_xpath += " | " + this.plus_xpath;
+                            //this.ctime_jquery += " , " + this.plus_jquery;
+                            break;
+                        case "pic_urls":
+                            this.pic_urls_xpath += " | " + this.plus_xpath;
+                            //this.pic_urls_jquery += " , " + this.plus_jquery;
+                            break;
+                    }
+                }
+            },
+            watch: {
+                taskId: function () {
+                    getDetailUrlByTaskId(this);
+                },
+                detail_url: function () {
+                    loadHtml(this);
+                },
+                isLoadJS: function () {
+                    loadHtml(this);
+                },
+                isXPathShow: function () {
+                    if (!this.isXPathShow) {
+                        this.isPlusShow = false;
+                    }
+                }
+            },
+            computed: {
+                title_text: function () {
+                    return getXPathText(this.title_xpath);
+                },
+                content_text: function () {
+                    return getXPathText(this.content_xpath);
+                },
+                source_text: function () {
+                    return getXPathText(this.source_xpath);
+                },
+                retweeted_source_text: function () {
+                    return getXPathText(this.retweeted_source_xpath);
+                },
+                channel_text: function () {
+                    return getXPathText(this.channel_xpath);
+                },
+                ctime_text: function () {
+                    return getXPathText(this.ctime_xpath);
+                },
+                pic_cnt: function () {
+                    if (isNullOrEmpty(this.pic_urls_xpath)) {
+                        return 0;
+                    }
+                    var myFrame = document.getElementById("html").contentDocument;
+                    var results = myFrame.evaluate(this.pic_urls_xpath, myFrame, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                    return results.snapshotLength;
+                }
+            }
+        });
+    </script>
+{% endblock body_tail %}

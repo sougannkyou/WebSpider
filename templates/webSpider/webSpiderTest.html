@@ -1,0 +1,657 @@
+{% extends 'base_backend_frameless.html' %}
+{% load static %}
+
+{% block header_tail %}
+    <link rel="stylesheet" href="{% static 'public/CodeMirror/lib/codemirror.css' %}">
+    <link rel="stylesheet" href="{% static 'public/CodeMirror/theme/lesser-dark.css' %}">
+    <style>
+        [v-cloak] {
+            display: none;
+        }
+
+        body {
+            background-color: #eee;
+        }
+
+        div, input, span {
+            border-radius: 5px;
+        }
+
+        span.error-msg {
+            background-color: red;
+            font-size: large;
+        }
+
+        span.ok-msg {
+            background-color: green;
+            font-size: medium;
+        }
+
+        td {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        div.result-parent-url {
+            height: 35px;
+            background-color: deepskyblue;
+        }
+
+        div.result-title {
+            height: 35px;
+            padding: 7px;
+            background-color: dodgerblue;
+        }
+
+        div.result {
+            height: 690px;
+            overflow-y: scroll;
+            border: 1px solid deepskyblue;
+        }
+    </style>
+{% endblock header_tail %}
+
+{% block section_content %}
+    {% verbatim %}
+    <!-- Main content -->
+    <div id="main" class="inverse" v-cloak>
+        <!-- result -->
+        <section id="resultSection" class="col-md-12 connectedSortable">
+            <div class="box box-primary">
+                <div class="box-header with-border" style="border-color: steelblue;height:50px;">
+                    <h3 class="box-title">爬虫后台测试</h3>
+                    <!--
+                    <a v-on:click="nevToMain" class="btn btn-xs btn-warning btn-nav pull-right" title="入口管理">
+                        <i class="fa fa-sitemap"></i>
+                    </a>
+                    -->
+                    <button v-on:click="gotoXGSJ" class="btn btn-primary pull-right">返回星光数据</button>
+                </div>
+                <div class="box-body">
+                    <ul class="nav nav-tabs">
+                        <!-- li loops  -->
+                        <li v-for="lvl in levels" v-bind:class="[ lvl === level ? 'active':'']">
+                            <a href="#list_[[ lvl ]]" v-on:click="set_level(lvl)" data-toggle="tab">
+                                <label v-if="lvl===0">入口地址</label>
+                                <label v-else>[[ lvl ]]级列表</label>
+                            </a>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <!-- div loops  -->
+                        <div id="list_[[ node.level ]]" style="margin-top:10px"
+                             v-bind:class="[ node.level === level ? 'tab-pane active':'tab-pane']"
+                             v-for="node in nodes">
+                            <div class="col-md-12">
+                                <div class="col-md-2 result-parent-url">
+                                    <h4>上级列表页url</h4>
+                                </div>
+                                <div class="col-md-10">
+                                    <h4>
+                                        <a href="[[node.parent_hub_url]]" target="_blank">[[node.parent_hub_url]]</a>
+                                    </h4>
+                                </div>
+                            </div>
+                            <div v-show="node.hasError" class="">
+                                <p>[[ node.error_msg ]]</p>
+                            </div>
+                            <div class="col-md-12">
+                                <div v-show="node.level === level && !node.hasError" class="col-md-12 result-title">
+                                    <div class="col-md-1">
+                                        <span class="badge">共 [[ node['hubs'] | count ]] 件</span>
+                                    </div>
+                                    <div class="col-md-1">操作标记</div>
+                                    <div class="col-md-8">获取url</div>
+                                    <!--
+                                    <div class="col-md-2">件 数</div>
+                                    -->
+                                    <div class="col-md-2">点击下面按钮，查看下一级结果</div>
+                                </div>
+                                <div class="col-md-12 result">
+                                    <table v-show="node.level === level && !node.hasError"
+                                           class="table table-striped table-hover table-condensed"
+                                           style="table-layout:fixed;margin:10px;">
+                                        <tbody>
+                                        <tr id="tr_[[ $index ]]" v-for="hub in node.hubs">
+                                            <td class="col-md-1 td-fixed">[[ $index + 1 ]]</td>
+                                            <td class="col-md-1">
+                                                <a v-on:click="set_row($index)">
+                                                    <i v-bind:class="[ hub.selected ? 'fa fa-star' : 'fa fa-star-o']"></i>
+                                                </a>
+                                            </td>
+                                            <td class="col-md-8 td-fixed">
+                                                <a href="[[ hub.url ]]" target="_blank">[[ hub.url ]]</a>
+                                            </td>
+                                            <!--
+                                            <td class="col-md-2"> [[ hub.cnt ]]</td>
+                                            -->
+                                            <td class="col-md-2" style="padding-left:100px;">
+                                                <a v-if="hub.next!== 'parse_detail_page'"
+                                                   v-on:click="next('hub',$index)" title="列表页"
+                                                   class="btn btn-xs btn-primary btn-nav">
+                                                    <i class="fa fa-list"></i>
+                                                </a>
+                                                <a v-else v-on:click="next('detail',$index)" title="详情页"
+                                                   class="btn btn-xs btn-success btn-nav">
+                                                    <i class="fa fa-file-text-o"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="box-footer with-border" style="border-color:steelblue;">
+                    <div class="form-group">
+                        <span v-bind:class="[ msg.substr(0,2) === '错误' ? 'badge error-msg' : 'badge ok-msg']"
+                              style="margin-left:20px">[[ msg ]]</span>
+                        <!--
+                        <input v-model="isCodeShow" name="isCodeShow" type="checkbox"> 显示代码</input>
+                        -->
+                        <button v-on:click="stopTest" class="btn btn-primary pull-right"
+                                style="margin-right:20px">停止
+                        </button>
+                        <button v-on:click="startTest" class="btn btn-primary pull-right"
+                                style="margin-right:20px">开始分步测试
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- code -->
+        <section v-show="isCodeShow" id="codeSection" class="col-md-6 connectedSortable">
+            <div class="box box-success">
+                <div class="box-header with-border">
+                    <h3 class="box-title">爬虫代码</h3>
+                </div>
+                <div class="box-body">
+                    <textarea id="spiderCode" class="form-control" rows="40" placeholder="请输入代码">[[ code ]]</textarea>
+                </div>
+            </div>
+        </section>
+    </div>
+    <!-- Main end. -->
+
+    <!-- detail modal-dialog -->
+    <div id="detailDialog" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" style="width:1400px;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <label><a class="modal-title" href="[[ detail_url ]]" target="_blank">[[ detail_url ]]</a></label>
+                </div>
+                <div id="" class="modal-body">
+                    <!-- left column -->
+                    <div class="col-md-6">
+                        <div class="box box-primary">
+                            <div class="box-body">
+                                <div class="form-group">
+                                    <h4>原网页如下：</h4>
+                                    <div class=" form-group has-success">
+                                        <iframe id="detail_iframe" class="iframe-detail" width="735px" height="600px"
+                                                scrolling="auto" frameborder="0" src="">
+                                        </iframe>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- right column -->
+                    <div class="col-md-6">
+                        <div class="box box-warning">
+                            <div class="box-body">
+                                <div class="form-group has-success">
+                                    <label class="control-label"> 标题&nbsp;&nbsp; </label>
+                                    <input type="text" v-model="title" value="[[ title ]]" class="form-control"
+                                           placeholder="" readonly>
+                                </div>
+                                <div class="form-group has-success">
+                                    <label class="control-label"> 时间&nbsp;&nbsp; </label>
+                                    <input type="text" v-model="ctime" value="[[ ctime ]]" class="form-control"
+                                           placeholder="" readonly>
+                                </div>
+                                <div class="form-group has-success">
+                                    <label class="control-label"> 来源&nbsp;&nbsp; </label>
+                                    <input type="text" v-model="source" value="[[ source ]]" class="form-control"
+                                           placeholder="" readonly>
+                                </div>
+                                <div class="form-group has-success">
+                                    <label class="control-label"> 频道&nbsp;&nbsp; </label>
+                                    <input type="text" v-model="channel" value="[[ channel ]]" class="form-control"
+                                           placeholder="" readonly>
+                                </div>
+                                <div class="form-group has-success">
+                                    <label> 内容&nbsp;&nbsp; </label>
+                                    <div v-html="content" class="form-control"
+                                         style="min-height:300px;max-height:600px;overflow:scroll;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer"></div>
+            </div>
+        </div>
+    </div>
+    <!-- detail dialog end. -->
+    {% endverbatim %}
+{% endblock section_content %}
+
+{% block jquery_js %}
+    <!-- vue.js -->
+    <script src="{% static 'plugins/vue1/vue.js' %}"></script>
+    <script src="{% static 'plugins/vue1/vue-resource.js' %}"></script>
+
+    <script src="{% static 'public/CodeMirror/lib/codemirror.js' %}"></script>
+    <script src="{% static 'public/CodeMirror/mode/python/python.js' %}"></script>
+{% endblock jquery_js %}
+
+{% block body_tail %}
+    <script type="text/javascript" src="{% static 'webSpider/js/csrf.js' %}"></script>
+    <script type="text/javascript" src="{% static 'webSpider/js/common.js' %}"></script>
+    <script type="text/javascript" src="{% static 'webSpider/js/vue_component.js' %}"></script>
+    <script type="text/javascript" src="{% static 'webSpider/js/vue_filter.js' %}"></script>
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            if (window.localStorage.getItem('ELECTRON_START')) { // 客户端版跳过下面步骤
+                console.log("eSpider启动: test");
+            } else {
+                console.log("webSpider启动: test");
+
+                var taskId = getQueryString("taskId");
+                if (isNullOrEmpty(taskId)) {
+                    alert("taskId不能为空！");
+                    return false;
+                } else {
+                    mainVue.taskId = parseInt(taskId);
+                }
+            }
+        });
+
+        function codeHighlight(code) {
+            $('#spiderCode').val(code);
+            var spider_code_text = document.getElementById('spiderCode');
+            var editor = CodeMirror.fromTextArea(spider_code_text, {
+                mode: "python",
+                lineNumbers: true,
+                matchBrackets: true,
+                theme: "lesser-dark",
+                parserConfig: {useHTMLKludges: true}
+            });
+            editor.setOption("extraKeys", {
+                Tab: function (cm) {
+                    var spaces = new Array(cm.getOption("indentUnit") + 1).join(" ");
+                    cm.replaceSelection(spaces);
+                }
+            });
+            editor.setSize('750px', '720px');
+        }
+
+        function getTaskCode(obj) {
+            console.log("[test] getTaskCode", obj.taskId);
+            var opt = {
+                url: HOST + "/webSpider/getTaskCodeAPI",
+                type: 'GET',
+                data: {
+                    taskId: obj.taskId
+                },
+                error: function (xhr, err) {
+                    console.error("[test] getTaskCodeAPI error.", err);
+                    obj.msg = "错误: 代码取得异常。";
+                },
+                success: function (data, status) {
+                    console.log("[test] getTaskCodeAPI success.", data);
+                    obj.code = data['code'];
+                    codeHighlight(obj.code);
+                }
+            };
+            send(opt);
+        }
+
+        function checkServiceActive(obj) {
+            var opt = {
+                url: HOST + "/webSpider/checkServiceActiveAPI",
+                type: 'GET',
+                timeout: 3000,
+                data: {},
+                error: function (xhr, err) {
+                    console.error("[test] checkServiceActiveAPI error", err);
+                    obj.msg = "错误: 超时3秒，爬虫服务异常！"
+                },
+                success: function (data, status) {
+                    console.log("[test] checkServiceActiveAPI success.", data);
+                    if (data['ret'] === 1) {
+                        obj.msg = "正常: 爬虫测试服务状态正常。";
+                    } else {
+                        obj.msg = "错误: 超时3秒，爬虫测试服务异常！";
+                    }
+                }
+            };
+            send(opt);
+        }
+
+        function initMain(obj) {
+            checkServiceActive(obj);
+            getTaskCode(obj);
+
+            var opt = {
+                url: HOST + "/webSpider/getNavInfoAPI",
+                type: 'GET',
+                data: {
+                    taskId: obj.taskId
+                },
+                error: function (xhr, err) {
+                    console.error("[test] getNavInfoAPI error.", err);
+                    obj.msg = "错误: 代码取得异常。";
+                },
+                success: function (data, status) {
+                    console.log("[test] getNavInfoAPI success.", data);
+                    for (var i = 0; i <= data['levels_cnt']; i++) {
+                        obj.nodes.push({
+                            level: i,
+                            parent_hub_url: "",
+                            hasError: false,
+                            error_msg: "",
+                            hubs: [
+                                //{url: '', cnt: 0, next: '', is_next: false, selected: false}
+                            ]
+                        });
+                    }
+                    if (data['hasDetail']) {
+                        obj.nodes.push({
+                            level: i,
+                            parent_hub_url: "",
+                            hasError: false,
+                            error_msg: "",
+                            hubs: [
+                                //{url: '', cnt: 0, next: '', is_next: false, selected: false}
+                            ]
+                        })
+                    }
+                }
+            };
+            send(opt);
+        }
+
+        function getTaskStatus(obj) {
+            console.log("[test] getTaskStatus start.", obj._uuid);
+            obj._clock = window.setInterval(function () {
+                var opt = {
+                    url: HOST + '/webSpider/getTaskStatusAPI/',
+                    type: 'GET',
+                    data: {
+                        uuid: obj._uuid
+                    },
+                    error: function (xhr, err) {
+                        console.error("[test] getTaskStatusAPI error.", err);
+                    },
+                    success: function (data, status) {
+                        console.log("[test] getTaskStatusAPI success.", data);
+                        // "" 不存在的任务	0 尚未完成	1 完成
+                        if (data['ret'] === 1) {
+                            obj.msg = "正确：任务完成";
+                            getTestResult(obj);
+                            window.clearInterval(obj._clock);
+                        } else if (data['ret'] === 0) {
+                            obj.msg = "正确：任务尚未完成";
+                        } else {
+                            obj.msg = "正确：任务超时，被测试机自动清理！";
+                            window.clearInterval(obj._clock);
+                        }
+                    }
+                };
+                send(opt);
+            }, 1000);
+        }
+
+        function startTest(obj) {
+            obj.msg = "正常：测试开始，请稍后 ...";
+            console.log("[test] startTest start", obj._url, obj.proxy, obj._func_name);
+            var opt = {
+                url: HOST + '/webSpider/startTestAPI/',
+                type: 'GET',
+                data: {
+                    proxy: obj.proxy,
+                    url: obj._url, // 测试url 单步调试使用 第一次单步调试不需要
+                    func_name: obj._func_name, // 单步测试函数名称 默认测试get_start_urls函数 其他按照上次返回值中的函数名确定 或人为指定函数
+                    code: obj.code
+                },
+                error: function (xhr, err) {
+                    console.error("[test] startTestAPI error.", err);
+                },
+                success: function (data, status) {
+                    console.log("[test] startTestAPI success.", data);
+                    obj._uuid = data['ret'];
+                    getTaskStatus(obj);
+                }
+            };
+            send(opt);
+        }
+
+        function getTestResult(obj) {
+            obj.msg = "正常：正在查询测试结果，请稍后 ... ";
+            var opt = {
+                url: HOST + '/webSpider/getTestResultAPI/',
+                type: 'GET',
+                data: {
+                    uuid: obj._uuid
+                },
+                error: function (xhr, err) {
+                    console.error("[test] getTestResultAPI error.", err);
+                },
+                success: function (data, status) {
+                    console.log("[test] getTestResultAPI success.", data);
+                    var result = eval(data['ret']['result']);
+                    if (result['code'] === 0) {
+                        if (obj._func_name === 'parse_detail_page') { //detail
+                            if (result['data'].length !== 0) {
+                                obj.msg = "正常：取得测试结果成功，可进行下一步测试。";
+                                var detail = JSON.parse(result['data']);
+                                detailVue.title = detail['title'];
+                                detailVue.ctime = detail['ctime'];
+                                detailVue.source = detail['source'];
+                                detailVue.channel = detail['channel'];
+                                detailVue.content = detail['content'];
+                            } else {
+                                obj.msg = "正常：未取得有效测试结果，请确认选取模板有无变化。";
+                                detailVue.title = '';
+                                detailVue.ctime = '';
+                                detailVue.source = '';
+                                detailVue.channel = '';
+                                detailVue.content = '';
+                            }
+
+                            detailVue.detail_url = obj._url;
+                            $("#detail_iframe").attr('src', obj._url);
+                            $('#detailDialog').modal('show');
+
+                        } else { // hubs
+                            for (var j = 0; j < 100; j++) {
+                                obj.nodes[obj.level]['hubs'].shift();
+                            }
+
+                            if (result['urls'].length !== 0) {
+                                obj.msg = "正常：取得测试结果成功，可进行下一步测试。";
+                            } else {
+                                obj.msg = "正常：未取得有效测试结果，请确认选取模板有无变化。";
+                            }
+
+                            for (var i = 0; i < result['urls'].length; i++) {
+                                var item = result['urls'][i];
+                                var url = "";
+                                if (obj.level === 0) {
+                                    url = item['url'];
+                                } else {
+                                    url = item['url']['url'];
+                                }
+                                var hub = {
+                                    url: url,
+                                    cnt: 0,
+                                    next: item['next'],
+                                    is_next: item['is_next'],
+                                    selected: false
+                                };
+                                obj.nodes[obj.level]['hubs'].push(hub);
+                            }
+                        }
+                    } else {
+                        obj.msg = "错误：取得测试结果失败! 错误原因:" + result['error'];
+                    }
+                }
+            };
+            window.setTimeout(function () {
+                send(opt);
+            }, 2000);
+
+        }
+
+        function stopTest(obj) {
+            if (isNullOrEmpty(obj._uuid)) {
+                alert("没有任务正在运行！");
+                return false;
+            }
+            console.log("[info] stopTest() start.", obj._uuid);
+            var opt = {
+                url: HOST + '/webSpider/stopTestAPI/',
+                type: 'GET',
+                data: {
+                    uuid: obj._uuid
+                },
+                error: function (xhr, err) {
+                    obj.msg = "错误：任务终止失败！";
+                    console.error("[error] StopTestAPI", err);
+                },
+                success: function (data, status) {
+                    window.clearInterval(obj._clock);
+                    window.setTimeout(function () {
+                        obj.msg = "正常：任务终止完成。";
+                    }, 1000);
+
+                    console.log("[info] stopTest() end.", data);
+                }
+            };
+            send(opt);
+        }
+
+        function gotoXGSJ(obj) {
+            var opt = {
+                url: HOST + '/webSpider/gotoXGSJAPI/',
+                type: 'GET',
+                data: {},
+                error: function (xhr, err) {
+                    console.error("[test] gotoXGSJAPI error.", err);
+                },
+                success: function (data, status) {
+                    //if (window.top !== window.self) {
+                    window.top.location.href = data['url'];
+                    //}
+                }
+            };
+            send(opt);
+        }
+
+        //----------------------------------------------------------------------------
+        Vue.config.delimiters = ['[[', ']]'];
+        //----------------------------------------------------------------------------
+        var mainVue = new Vue({
+            el: '#main',
+            data: {
+                user_id: "admin",
+                start_url: "",
+                levels: [0, 1, 2],
+                level: 0, // 当前激活状态所属列表层级
+                _row: -1,  // 当前选择状态所属行
+                nodes: [],
+                code: "",
+                taskId: null,
+                _uuid: null,
+                _func_name: "", // 当前点击
+                _url: "", // 当前点击
+                _clock: null,
+                proxy: false,
+                isCodeShow: false,
+
+                msg: "loading ..."
+            },
+            methods: {
+                set_level: function (level) {
+                    console.log("set_level", level);
+                    this.level = level;
+                },
+                set_row: function (row) {
+                    console.log("set_row", row);
+                    this._row = row;
+                },
+                startTest: function () {
+                    this.level = 0;
+                    this._row = 0;
+                    this._url = '';
+                    this._func_name = '';
+                    startTest(this);
+                },
+                stopTest: function () {
+                    stopTest(this);
+                },
+                navToMain: function () {
+                    navTo('main', -1, -1);
+                },
+                gotoXGSJ: function () {
+                    gotoXGSJ();
+                },
+                next: function (goto, row) {
+                    this._row = row;
+                    console.log("[test] click next.", this.nodes, this.level);
+                    this._url = this.nodes[this.level]['hubs'][this._row]['url'];
+                    this._func_name = this.nodes[this.level]['hubs'][this._row]['next'];
+                    this.nodes[this.level]['hubs'][this._row]['selected'] = true;
+                    if (this.level + 1 < this.levels.length) {
+                        this.level++;
+                        this.nodes[this.level]['parent_hub_url'] = this._url;
+                    }
+
+                    console.log("[test] click next:",
+                        "level:", this.level, "_url:", this._url,
+                        "_row:", this._row, "_func_name:", this._func_name
+                    );
+                    startTest(this);
+                },
+            },
+            ready: function () {
+            },
+            watch: {
+                taskId: function () {
+                    initMain(this);
+                },
+                _row: function () {
+                    //this.nodes[this.level + 1]['parent_hub_url'] = this.nodes[this.level]['hubs'][this._row]['url'];
+                    //this.nodes[this.level]['hubs'][this._row]['selected'] = true;
+                }
+            }
+        });
+
+        var detailVue = new Vue({
+            el: "#detailDialog",
+            data: {
+                detail_url: 'detail_url',
+                title: 'title',
+                ctime: 'ctime',
+                source: 'source',
+                channel: 'channel',
+                content: 'content',
+                msg: ""
+            },
+            methods: {
+                ready: function () {
+                    //initDetailVue(this);
+                }
+            },
+            watch: {}
+        });
+    </script>
+{% endblock body_tail %}

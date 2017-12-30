@@ -1,0 +1,353 @@
+{% extends 'base_backend_frameless.html' %}
+{% load static %}
+
+{% block header_tail %}
+    <style>
+        [v-cloak] {
+            display: none;
+        }
+
+        .bg {
+            background-color: yellow;
+        }
+
+        a.nav-mark {
+            outline: blue solid 3px;
+        }
+
+        a.btn-nav {
+            margin: 2px;
+        }
+
+        select {
+            padding: 0 0 0 20px;
+        }
+
+        hr {
+            margin-top: 5px;
+            margin-bottom: 5px
+        }
+
+        span {
+            color: white;
+        }
+
+        iframe {
+            width: 95%;
+            height: 700px;
+            margin-left: 90px;
+            border: 0 dashed dodgerblue;
+        }
+
+        .iframe-full {
+            width: 95%;
+            height: 850px;
+            margin-left: 90px;
+            border: 0 dashed dodgerblue;
+        }
+
+        /*
+        table {
+            position: relative;
+            overflow-y: scroll;
+            table-layout: fixed;
+        }
+
+        thead {
+            width: 100%;
+            position: absolute;
+            background-color: skyblue;
+        }
+
+        tbody {
+            display: block;
+            height: 150px;
+            width: 100%;
+            overflow-y: scroll;
+        }
+        */
+        .menu {
+            position: absolute;
+            left: 5px;
+            top: 120px;
+            background-color: skyblue;
+            width: 90px;
+            height: 200px;
+            border: 1px dashed dodgerblue;
+            border-radius: 7px;
+        }
+
+        .required {
+            border: 1px dashed red;
+        }
+
+        .output-hubs {
+            border: 2px dashed deepskyblue;
+        }
+
+        .output-ctime {
+            border: 2px dashed dodgerblue;
+        }
+
+        .output-nextPage {
+            border: 2px dashed cornflowerblue;
+        }
+
+        .debug {
+            border: 2px dashed red;
+        }
+
+        .xpath-list {
+            height: 105px;
+            overflow-y: scroll;
+            border: 1px solid steelblue;
+        }
+
+        .result {
+            height: 150px;
+            overflow-y: scroll;
+            border: 1px solid steelblue;
+        }
+
+        .result-title {
+            background-color: skyblue;
+            outline: 1px solid steelblue;
+        }
+    </style>
+{% endblock header_tail %}
+
+{% block section_content %}
+    {% verbatim %}
+        <!-- Main content -->
+        <div id="main" class="inverse" v-cloak>
+            <div class="box box-info">
+                <div class="box-inner">
+                    <div class="box-header with-border" style="border-color: steelblue;height:50px;">
+                        <div class="form-group col-md-9">
+                            <div class="input-group">
+                                <span class="input-group-addon bg-aqua">当前地址</span>
+                                <input class="form-control" title="起始页：[[ start_url ]]" v-model="start_url"
+                                       placeholder="url">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <!-- navigator -->
+                            <!--<navigator v-bind:start_url="start_url"-->
+                            <!--v-bind:current_level="level"-->
+                            <!--v-bind:has_detail="hasDetail"-->
+                            <!--v-bind:levels="navInfo.levels">-->
+                            <!--</navigator>-->
+                            <!-- navigator -->
+                        </div>
+                    </div>
+                    <div class="box-body">
+                        <!-- menu -->
+                        <div class="menu">
+                            <h5>&nbsp;节点设定<i class="fa fa-fw fa-plus-circle"></i></h5>
+                            <div style="margin-left: 3px;margin-right: 3px;">
+                                <hr>
+                                <input v-model="isResultShow" name="result" type="checkbox" value="isResultShow">
+                                选取结果</input><br>
+                                <input v-model="isXPathShow" name="debug" type="checkbox" value="isXPathShow">
+                                模拟配置</input><br>
+                                <input v-model="isSimulatorShow" name="debug" type="checkbox" value="isXPathShow">
+                                模拟显示</input><br>
+                                <input v-model="isDebugShow" name="debug" type="checkbox" value="isDebugShow">
+                                调试</input><br>
+                                <button v-on:click="simulation" class="btn btn-xs btn-primary" style="margin-top:5px;">
+                                    模拟
+                                </button>
+                                <button v-on:click="getResult" class="btn btn-xs btn-primary" style="margin-top:5px;">
+                                    刷新结果
+                                </button>
+                            </div>
+                        </div>
+                        <!-- menu end -->
+                        <iframe id="html" ref="myFrame" scrolling="yes" v-bind:src="start_url"
+                                v-bind:class="[ !isXPathShow && !isDebugShow && !isResultShow ? 'iframe-full' : '']">
+                        </iframe>
+
+                    </div>
+                    <div class="box-footer with-border" style="border-color: steelblue">
+                        <div v-show="isDebugShow" class="input-group col-md-12" style="margin-bottom: 5px;">
+                            <span class="input-group-addon bg"
+                                  style="color:white;background-color: Crimson;">&nbsp;匹配</span>
+                            <input class="form-control debug" value="[[ debug_xpath ]]"
+                                   v-model="debug_xpath" placeholder="请输入xpath">
+                        </div>
+                        <div v-show="isXPathShow" class="xpath-list">
+                            <div class="input-group col-md-12">
+                                <span class="input-group-addon" style="background-color: deepskyblue;">检索内容</span>
+                                <input v-model="search_text" value="[[ search_text ]]" type="text" placeholder="css选择器"
+                                       class="form-control">
+
+                                <span v-on:click="select('text')" class="input-group-addon"
+                                      style="background-color: deepskyblue;">检索内容框（选择器）</span>
+                                <input v-model="search_selector" value="[[ search_selector ]]" type="text"
+                                       placeholder="css选择器"
+                                       v-bind:class="[ select_item == 'text' ? 'output-hubs form-control' : 'form-control']">
+
+                                <span v-on:click="select('btn')" class="input-group-addon"
+                                      style="background-color:dodgerblue;">检索按钮（选择器）</span>
+                                <input v-model="search_btn_selector" value="[[ search_btn_selector ]]" type="text"
+                                       placeholder="css选择器"
+                                       v-bind:class="[ select_item == 'btn' ? 'output-ctime form-control' : 'form-control']">
+                            </div>
+                            <div class="input-group col-md-12">
+                                <span class="input-group-addon bg"
+                                      style="background-color:deepskyblue;">滚动距离(px)</span>
+                                <input v-model="scroll_height" value="[[ scroll_height ]]" type="text"
+                                       placeholder="css选择器"
+                                       class="form-control">
+                                <span class="input-group-addon bg"
+                                      style="background-color:deepskyblue;">滚动间隔(ms)</span>
+                                <input v-model="scroll_interval" value="[[ scroll_interval ]]" type="text"
+                                       class="form-control"
+                                       placeholder="ms">
+                            </div>
+                            <div class="input-group col-md-12">
+                                <span class="input-group-addon bg"
+                                      style="background-color:cornflowerblue;">结果筛选（选择器）</span>
+                                <input v-model="result_filter" type="text" placeholder="css选择器"
+                                       class="form-control">
+                            </div>
+                        </div>
+                        <div v-show="isResultShow" class="col-md-12 result-title">
+                            <div class="col-md-1">&nbsp;No.&nbsp;
+                                <span class="badge">共 [[ hubs_cnt ]] 件</span>
+                            </div>
+                            <div class="col-md-4">链接文本</div>
+                            <div class="col-md-7">链接</div>
+                        </div>
+                        <div v-show="isResultShow" class="col-md-12 result">
+                            <table class="table table-striped table-hover table-condensed" style="table-layout:fixed">
+                                <tbody>
+                                <tr id="tr_hubs_[[ $index ]]" v-for="hub in hubs">
+                                    <td class="col-md-1">[[ hub.index ]]</td>
+                                    <td class="col-md-4">[[ hub.text ]]</td>
+                                    <td class="col-md-7">
+                                        <a href="[[ hub.href ]]" target="_blank">[[ hub.href ]]</a>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endverbatim %}
+{% endblock section_content %}
+
+{% block jquery_js %}
+    <!-- vue.js -->
+    <script src="{% static 'plugins/vue1/vue.js' %}"></script>
+{% endblock jquery_js %}
+
+{% block body_tail %}
+    <script type="text/javascript" src="{% static 'backend/js/csrf.js' %}"></script>
+    <script type="text/javascript" src="{% static 'backend/js/util.js' %}"></script>
+    <script type="text/javascript" src="{% static 'backend/webSpider/js/component.js' %}"></script>
+    <script type="text/javascript" src="{% static 'backend/webSpider/js/common.js' %}"></script>
+    <script type="text/javascript" src="{% static 'backend/webSpider/js/selector.js' %}"></script>
+    <script type="text/javascript">
+        function getResult(obj) {
+            $.ajaxSetup({
+                data: {csrfmiddlewaretoken: '{{ csrf_token }}'}
+            });
+            $.ajax({
+                url: '/webSpider/getSimulationResultAPI/',
+                type: 'GET',
+                data: {
+                    user_id: obj.user_id,
+                    start_url: obj.start_url,
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    callError("[xpath] getSimulationResultAPI GET", err);
+                },
+                success: function (data, status) {
+                    console.log("[xpath] getResult", data);
+                    if (!isNullOrEmpty(data["hubs"])) {
+                        obj.hubs = data["hubs"];
+                        obj.hubs_cnt = obj.hubs.length;
+                    }
+                }
+            });
+        }
+
+        function runScript(obj) {
+            console.log("[xpath] runSimulationScriptAPI start");
+            $.ajaxSetup({
+                data: {csrfmiddlewaretoken: '{{ csrf_token }}'}
+            });
+            $.ajax({
+                url: '/webSpider/runSimulationScriptAPI/',
+                type: 'GET',
+                data: {
+                    user_id: obj.user_id,
+                    simulatorShow: obj.isSimulatorShow,
+                    start_url: obj.start_url,
+                    search_text: obj.search_text,
+                    search_btn_selector: obj.search_btn_selector,
+                    search_selector: obj.search_selector,
+                    result_filter: obj.result_filter,
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    console.error("[xpath] runSimulationScriptAPI", err);
+                },
+                success: function (data, status) {
+                    console.log("[xpath] runSimulationScriptAPI", data);
+                }
+            });
+        }
+        //----------------------------------------------------------------------------
+        Vue.config.delimiters = ['[[', ']]'];
+        //----------------------------------------------------------------------------
+        let mainVue = new Vue({
+            el: "#main",
+            data: {
+                user_id: 'admin',
+                start_url: "https://www.baidu.com/",
+                // navigator
+                level: -1,  // 层级，决定node名字：level1，level2，level3
+                navInfo: {'levels_cnt': 0, 'levels': []}, // detail 共同,由此节点前往详情（mongodb objectId）
+                hasDetail: false,
+
+                //output
+                search_selector: "#kw",
+                search_text: "北京智慧星光信息技术有限公司",
+                search_btn_selector: "#su",
+                scroll_interval: 3000,
+                scroll_height: 1000,
+                my_timer: null,
+
+                // reseult
+                result_filter: "h3 > a",
+                hubs: [],
+                hubs_cnt: 0,
+                // debug
+                debug_xpath: "",
+                debug_selector: "",
+                // show
+                isXPathShow: true,
+                isDebugShow: false,
+                isResultShow: false,
+                isSimulatorShow: true,
+
+                msg: ""
+            },
+            methods: {
+                simulation: function () {
+                    runScript(this);
+                },
+                getResult: function () {
+                    getResult(this);
+                }
+            },
+            ready: function () {
+            },
+        });
+    </script>
+{% endblock body_tail %}

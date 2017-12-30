@@ -1,0 +1,742 @@
+{% extends 'base_backend_frameless.html' %}
+{% load static %}
+
+{% block header_tail %}
+    <link rel="stylesheet" href="{% static 'public/CodeMirror/lib/codemirror.css' %}">
+    <link rel="stylesheet" href="{% static 'public/CodeMirror/theme/lesser-dark.css' %}">
+    <link rel="stylesheet" href="{% static 'public/html5shiv/css/jquery.slinky.css' %}">
+    <style>
+        [v-cloak] {
+            display: none;
+        }
+
+        body {
+            background-color: #eee;
+        }
+
+        div, input {
+            border-radius: 5px;
+        }
+
+        a.btn-nav {
+            margin: 2px;
+        }
+
+        li.nav-chart {
+            float: left;
+            margin-top: 0;
+            margin-left: 30px;
+        }
+
+        td {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    </style>
+{% endblock header_tail %}
+
+{% block section_content %}
+    {% verbatim %}
+    <!-- Main content -->
+    <div id="main" class="inverse" v-cloak>
+        <div class="box box-warning">
+            <div class="box-inner">
+                <div class="box-header with-border" style="border-color: orange;height: 60px">
+                    <div class="form-group col-md-12">
+                        <input class="col-md-7" style="height:35px;width:70%" v-model="search_url"
+                               placeholder="请输入url，检索(支持模糊匹配) 或 添加新入口">
+                        <button v-on:click="search" v-bind:disabled="isSearchBtnDisabled" style="margin-left:5px;"
+                                class="btn btn-warning">检索
+                        </button>
+                        <a v-on:click="addTaskInfo" class="btn btn-md btn-warning">添加任务</a>
+                    </div>
+                </div>
+                <div class="box-body">
+                    <table class="table table-striped table-hover table-condensed" style="table-layout:fixed">
+                        <thead>
+                        <tr>
+                            <th style="width:5%"> 任务ID</th>
+                            <th style="width:10%"> xgsjTaskID</th>
+                            <th style="width:40%">
+                                入口地址 <span class="badge bg-orange">共 [[ search_cnt ]] 条</span>
+                            </th>
+                            <th style="width:20%">网站名称</th>
+                            <th style="width:10%">导航</th>
+                            <th style="width:20%"> 操 作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr id="tr_[[ $index ]]" v-for="info in infoList"
+                            v-on:mouseover="showOpt($index)" v-on:mouseleave="hideOpt($index)">
+                            <td>[[ info.taskId ]]</td>
+                            <td>[[ info.xgsjTaskId ]]</td>
+                            <td title="[[ info.start_url ]]" class="td-fixed">
+                                <a href="[[ info.start_url ]]" target="_blank">[[ info.start_url ]]</a>
+                            </td>
+                            <td class="td-fixed">
+                                [[ info.site_name ]]
+                            </td>
+                            <td>
+                                <navigator v-bind:main_show="false"
+                                           v-bind:task_id="info.taskId"
+                                           v-bind:has_detail="info.navInfo.hasDetail"
+                                           v-bind:levels="info.navInfo.levels">
+                                </navigator>
+                            </td>
+                            <td></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="box-footer with-border" style="border-color: orange">
+                    <!-- paginator -->
+                    <paginator v-show="isPaginatorShow" v-bind:current.sync="page" v-bind:total.sync="totalPages">
+                    </paginator>
+                    <!-- paginator end -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Main end. -->
+
+    <!-- nodes modal-dialog -->
+    <div id="testDialog" class="modal" tabindex="1" role="dialog">
+        <div class="modal-dialog" style="width: 1200px;top:100px;">
+            <div class="box box-warning">
+                <div class="modal-header with-border" style="border-color:orange;">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span>&times;</span></button>
+                    <h4 class="modal-title">配置测试</h4>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-striped table-hover table-condensed" style="table-layout:fixed">
+                        <thead>
+                        <tr>
+                            <th class="col-md-1">层级</th>
+                            <th class="col-md-1">节点名称</th>
+                            <th class="col-md-1">父节点</th>
+                            <th class="col-md-1">选择方式</th>
+                            <th class="col-md-8">列表页xpath</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr v-for="info in nodes">
+                            <td>[[ $index + 1 ]]级列表</td>
+                            <td>[[ info.node ]]</td>
+                            <td>[[ info.parent_node ]]</td>
+                            <td>[[ info.select_mode ]]</td>
+                            <td>[[ info.hub_xpath ]]</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <div class="tabbable nav-tabs-custom col-sm-12">
+                        <ul class="nav nav-tabs">
+                            <li class="header pull-left"><h4><b>生成爬虫代码</b></h4></li>
+                            <li class="active"><a href="#json" data-toggle="tab">配置文件json</a></li>
+                            <li><a href="#spider_code" data-toggle="tab">生成代码</a></li>
+                            <li><a href="#spider_code_ret" data-toggle="tab">代码生成信息</a></li>
+                        </ul>
+                        <div class="tab-content active">
+                            <div id="json" class="tab-pane active">
+                                <textarea class="form-control" rows="20"
+                                          style="border-color:orange;">[[ spider_json ]]</textarea>
+                            </div>
+                            <div id="spider_code" class="tab-pane">
+                                <textarea id="spider_code_text" class="form-control" rows="20"
+                                          style="border-color:orange;">loading ... </textarea>
+                            </div>
+                            <div id="spider_code_ret" class="tab-pane">
+                                <textarea class="form-control" rows="20"
+                                          style="border-color:orange;">[[ spider_code_ret ]]</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer with-border" style="border-color:orange;">
+                    <div class="direct-chat-messages col-md-8" style="height:70px;">
+                        <div class="direct-chat-msg">
+                            <img class="direct-chat-img" src="/static/dist/img/user2-160x160.jpg"
+                                 alt="message user image" style="width:35px;height:35px;">
+                            <div class="direct-chat-text pull-left" style="margin-left:10px;height:30px;">
+                                [[ msg ]]
+                            </div>
+                        </div>
+                    </div>
+                    <button v-on:click="spiderTest" class="btn btn-warning">测试</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- nodes dialog end. -->
+
+    <!-- config-dialog -->
+    <div id="settingDialog" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" style="width: 600px;top:200px;">
+            <div class="modal-content">
+                <div class="box box-warning">
+                    <div class="modal-header with-border" style="border-color:orange;">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true"
+                                style="color:red">&times;
+                        </button>
+                        <h3 class="modal-title">入口属性设定</h3>
+                    </div>
+                    <div class="modal-body">
+                        <div class="box-body">
+                            <label class="col-sm-2 control-label">入口地址</label>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control col-sm-10" v-model="start_url"
+                                       value="[[ start_url ]]" readonly>
+                            </div>
+                            <label class="col-sm-2 control-label">info_flag</label>
+                            <div class="col-sm-10">
+                                <select class="form-control" v-model="info_flag">
+                                    <option v-for="option in info_flag_options" v-bind:value="option.value">
+                                        [[ option.name ]]
+                                    </option>
+                                </select>
+                            </div>
+                            <label class="col-sm-2 control-label">频道名称</label>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control" v-model="channel_name"
+                                       value="[[ channel_name ]]" placeholder="">
+                            </div>
+                            <label class="col-sm-2 control-label">网站名称</label>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control" v-model="site_name"
+                                       value="[[ site_name ]]" placeholder="">
+                            </div>
+                            <label class="col-sm-2 control-label">日期过滤</label>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control" v-model="max_interval"
+                                       value="[[ max_interval ]]" placeholder="单位：天">
+                            </div>
+                            <label class="col-sm-2 control-label">文件名</label>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control" v-model="filename" value="[[ filename ]]"
+                                       placeholder="代码名称(限：英文 数字 _ 组合)">
+                            </div>
+                            <label class="col-sm-2 control-label">功能描述</label>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control"
+                                       v-model="function_description" value="[[ function_description ]]"
+                                       placeholder="代码功能描述">
+                            </div>
+                            <label class="col-sm-2 control-label">使用代理</label>
+                            <div class="col-sm-10">
+                                <input type="radio" id="useProxy" name="useProxy" value="true"
+                                       v-model="proxy_enable">
+                                <label for="useProxy">使用</label>
+                                <input type="radio" id="unuseProxy" name="unuseProxy" value="false"
+                                       v-model="proxy_enable">
+                                <label for="unuseProxy">不使用</label>
+                            </div>
+                            <label class="col-sm-2 control-label">入库地址</label>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control" v-model="data_db"
+                                       value="[[ data_db ]]" placeholder="">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="direct-chat-messages col-md-8" style="height:70px;margin-top:0px;">
+                            <div class="direct-chat-msg">
+                                <img class="direct-chat-img" src="/static/dist/img/user2-160x160.jpg"
+                                     alt="message user image" style="width:35px;height:35px;">
+                                <div class="direct-chat-text pull-left" style="margin-left:10px;height:30px;">
+                                    [[ msg ]]
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 pull-right" style="margin-top:20px;">
+                            <button v-on:click="save" v-bind:disabled="isSaveBtnDisabled"
+                                    class="btn btn-sm btn-warning">保存
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- config end -->
+    {% endverbatim %}
+{% endblock section_content %}
+
+{% block jquery_js %}
+    <!-- vue.js -->
+    <script src="{% static 'plugins/vue1/vue.js' %}"></script>
+    <script src="{% static 'plugins/vue1/vue-resource.js' %}"></script>
+    <script src="{% static 'public/CodeMirror/lib/codemirror.js' %}"></script>
+    <script src="{% static 'public/CodeMirror/mode/python/python.js' %}"></script>
+    <script src="{% static 'public/html5shiv/js/jquery.slinky.js' %}"></script>
+{% endblock jquery_js %}
+
+{% block body_tail %}
+    <script type="text/javascript" src="{% static 'webSpider/js/csrf.js' %}"></script>
+    <script type="text/javascript" src="{% static 'webSpider/js/common.js' %}"></script>
+    <script type="text/javascript" src="{% static 'webSpider/js/vue_component.js' %}"></script>
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            // window.localStorage.setItem('ELECTRON_START',true); // 开启客户端版
+        });
+
+        function codeHighlight(code) {
+            $('div.CodeMirror.cm-s-lesser-dark').remove();
+            $('#spider_code_text').val(code);
+            var spider_code_text = document.getElementById('spider_code_text');
+            var editor = CodeMirror.fromTextArea(spider_code_text, {
+                mode: "python",
+                lineNumbers: false,
+                matchBrackets: true,
+                theme: "lesser-dark",
+                parserConfig: {useHTMLKludges: true}
+            });
+            editor.setOption("extraKeys", {
+                Tab: function (cm) {
+                    var spaces = new Array(cm.getOption("indentUnit") + 1).join(" ");
+                    cm.replaceSelection(spaces);
+                }
+            });
+            editor.setSize('1130px', '450px');
+            $('pre.CodeMirror-line:first').click();
+        }
+
+        function test(obj) {
+            console.log("[xpath] test");
+            var opt = {
+                url: HOST + '/webSpider/testAPI/',
+                type: 'GET',
+                dataType: 'json',
+                data: {
+                    'user_id': obj.user_id,
+                    'parent_node_id': obj.parent_node_id
+                },
+                error: function (xhr, err) {
+                    console.error('[xpath] test \n' + err);
+                },
+                success: function (data, status) {
+                    console.log('[xpath] test:', data);
+                    window.location.href = "/webSpider/debug/";
+                }
+            };
+            send(opt);
+        }
+
+        function initMain(obj) {
+            var opt = {
+                url: HOST + '/webSpider/mainAPI/',
+                type: 'GET',
+                data: {
+                    info_type: "list",
+                    user_id: obj.user_id,
+                    search_url: obj.search_url,
+                    page: obj.page
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    callError("[xpath] mainAPI GET", err);
+                },
+                success: function (data, status) {
+                    var items = data['ret'];
+                    for (var j = 0; j < PAGE_SIZE; j++) {
+                        obj.infoList.shift();
+                    }
+                    console.log("[xpath] initMain items:", items);
+                    for (var i = 0; !isNullOrEmpty(items) && i < items.length; i++) {
+                        obj.infoList.push(items[i]);
+                        window.localStorage.setItem(items[i].taskId, items[i].detail_url);
+                    }
+                    obj.isSearchBtnDisabled = false;
+                }
+            };
+            send(opt);
+        }
+
+        function getPaginator(obj) {
+            obj.isPaginatorShow = false;
+            var opt = {
+                url: HOST + '/webSpider/getEntryPaginatorAPI/',
+                type: 'GET',
+                data: {
+                    user_id: obj.user_id,
+                    search_url: obj.search_url,
+                    page: obj.page
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    callError("entryPaginatorAPI", err);
+                },
+                success: function (data, textStatus) {
+                    obj.search_cnt = data['search_cnt'];
+                    obj.page = data['current_page'];
+                    obj.totalPages = data['total_pages'];
+                    if (obj.search_cnt > 0) obj.isPaginatorShow = true;
+                }
+            };
+            send(opt);
+        }
+
+
+        function initConfig(event) {
+            testVue.taskId = event.data.taskId;
+            testVue.spider_json = "loading ...";
+            testVue.msg = "正在提取json，生成代码 ... ";
+
+            var opt = {
+                url: HOST + '/webSpider/makeJsonAndCodeAPI/',
+                type: 'GET',
+                data: {
+                    taskId: testVue.taskId
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    console.error("[xpath] makeJsonAndCodeAPI", err);
+                },
+                success: function (data, status) {
+                    // 1) nodes
+                    var node_list = data['node_list'];
+                    testVue.nodes_cnt = data['cnt'];
+                    for (var j = 0; j < testVue.nodes_cnt; j++) {
+                        testVue.nodes.shift();
+                    }
+
+                    for (var i = 0; i < testVue.nodes_cnt; i++) {
+                        var info = node_list[i];
+                        if (info['select_mode'] === "single") {
+                            for (var k = 0; !isNullOrEmpty(info['hubs']) && k < info['hubs'].length; k++) {
+                                info['hub_xpath'] += info['hubs'][k]['text'] + " , ";
+                            }
+                        }
+                        testVue.nodes.push(info);
+                    }
+
+                    // 2) 从星光数据平台获取schema_id
+                    if (data['schema_code'] !== "100") {
+                        testVue.msg = "schema_id获取失败： " + data['schema_msg'];
+                    } else {
+                        testVue.msg = "从星光数据平台获取schema_id( " + data['schema_id'] + " )成功。";
+                    }
+                    // 3) json
+                    var js_spider = data['spider_json'];
+                    testVue.spider_json = JSON.stringify(js_spider, null, '\t');
+
+                    // 4) code
+                    testVue.spider_code = data['spider_code'];
+                    codeHighlight(testVue.spider_code);
+
+                    testVue.spider_code_ret = data['spider_code_ret'];
+                }
+            };
+            send(opt);
+        }
+
+        function startTask(event) {
+            //mainVue.infoList[mainVue.row]['status'] = "已启用";
+            var opt = {
+                url: HOST + '/webSpider/startTaskAPI/',
+                type: "GET",
+                data: {
+                    'taskId': event.data.taskId,
+                    'intervaltime': 1,
+                    'clock_time': '',
+                    'last_modify_time': 0
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    console.error('[xpath] startTask', err);
+                },
+                success: function (data) {
+                    console.log("[xpath] startTask success.", data);
+                    alert(data['msg']);
+                }
+            };
+            send(opt);
+        }
+
+        function stopTask(event) {
+            console.log('[xpath] stopTask start');
+            //mainVue.infoList[mainVue.row]['status'] = "已启用";
+            var opt = {
+                url: HOST + '/webSpider/stopTaskAPI/',
+                type: "GET",
+                data: {
+                    'taskId': event.data.taskId
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    console.error('[xpath] stopTask', err);
+                },
+                success: function (data) {
+                    alert(data['message']);
+                    console.log("[xpath] stopTask end.", data);
+                }
+            };
+            send(opt);
+        }
+
+        function _clearSetting(obj) {
+            obj.start_url = "";
+            obj.info_flag = '01';
+            obj.channel_name = "";
+            obj.proxy_enable = "false";
+            obj.site_name = "";
+            obj.max_interval = 3;
+            obj.filename = "";
+            obj.function_description = "";
+            obj.data_db = DATA_DB;
+            obj.msg = "请输入信息，点击“保存”按钮。";
+        }
+
+        function initSetting(event) {
+            _clearSetting(settingVue);
+            settingVue.taskId = event.data.taskId;
+            settingVue.site_name = event.data.site_name;
+
+            var opt = {
+                url: HOST + '/webSpider/mainAPI/',
+                type: 'GET',
+                data: {
+                    info_type: "item",
+                    taskId: settingVue.taskId,
+                    site_name: settingVue.site_name
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    callError("[xpath] initSetting", err);
+                },
+                success: function (data, status) {
+                    settingVue.info_flag = data['ret']['info_flag'];
+                    settingVue.channel_name = data['ret']['channel_name'];
+                    settingVue.proxy_enable = data['ret']['proxy_enable'];
+                    settingVue.site_name = data['ret']['site_name'];
+                    settingVue.max_interval = data['ret']['max_interval'];
+                    settingVue.filename = data['ret']['filename'];
+                    settingVue.function_description = data['ret']['function_description'];
+                    settingVue.data_db = data['ret']['data_db']; //"redis://192.168.16.223/15/visual_data";
+                }
+            };
+            send(opt);
+        }
+
+
+        function addTaskInfo(obj) {
+            var opt = {
+                url: HOST + '/webSpider/addTaskInfoAPI/',
+                type: 'POST',
+                data: {
+                    xgsjTaskId: '', // 自系统启动时，星光数据参数为空。
+                    start_url: obj.search_url,
+                    user_id: 'admin',
+                    interval_time: 0,
+                    clock_time: '',
+                    last_modify_time: 0
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    console.error("[xpath] mainAPI DELETE", err);
+                    alert(settingVue.msg);
+                },
+                success: function (data, status) {
+                    var taskId = data['taskId'];
+                    window.location.href = "/webSpider/hubs/?taskId=" + taskId + "&level=0";
+                }
+            };
+            send(opt);
+        }
+
+        function saveSetting(obj) {
+            obj.msg = "正在保存信息 ... ";
+            var opt = {
+                url: HOST + '/webSpider/mainAPI/',
+                type: 'POST',
+                data: {
+                    info_type: "item",
+                    user_id: obj.user_id,
+                    start_url: obj.start_url,
+                    info_flag: obj.info_flag,
+                    channel_name: obj.channel_name,
+                    proxy_enable: obj.proxy_enable,
+                    site_name: obj.site_name,
+                    max_interval: obj.max_interval,
+                    filename: obj.filename,
+                    function_description: obj.function_description,
+                    data_db: obj.data_db
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    callError("[xpath] mainAPI POST", err);
+                    obj.msg = "保存失败!"
+                },
+                success: function (data, status) {
+                    obj.msg = "保存完成。";
+                    initMain(mainVue);
+                    getPaginator(mainVue);
+                    $('#settingDialog').modal('hide');
+                }
+            };
+            send(opt);
+        }
+
+        function removeTask(event) {
+            settingVue.msg = "正在删除信息 ... ";
+            var opt = {
+                url: HOST + '/webSpider/mainAPI/',
+                type: 'DELETE',
+                data: {
+                    taskId: event.data.taskId
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    console.error("[xpath] mainAPI DELETE", err);
+                    settingVue.msg = "任务删除失败!";
+                    alert(settingVue.msg);
+                },
+                success: function (data, status) {
+                    settingVue.msg = "任务删除完成。";
+                    alert(settingVue.msg);
+                    initMain(mainVue);
+                }
+            };
+            send(opt);
+        }
+
+        //----------------------------------------------------------------------------
+        Vue.config.delimiters = ['[[', ']]'];
+        //----------------------------------------------------------------------------
+        var mainVue = new Vue({
+            el: '#main',
+            data: {
+                user_id: "admin",
+                search_url: "",
+                search_cnt: 0,
+                infoList: [],
+                page: 1,
+                totalPages: 1,
+                row: -1,
+                isPaginatorShow: true,
+                isSearchBtnDisabled: true
+            },
+            methods: {
+                addTaskInfo: function () {
+                    if (this.search_url.indexOf('http') !== 0) {
+                        this.search_url = "http://" + this.search_url;
+                    }
+                    addTaskInfo(this);
+                },
+                showOpt: function (row) {
+                    this.row = row;
+                    var cid = 0;
+                    var rowId = "#tr_" + row.toString();
+                    var taskId = parseInt($(rowId).children("td").first().text());
+                    var site_name = $(rowId).children("td").eq(1).text();
+                    site_name = site_name.trim();
+                    var opt = $(rowId).children("td").last();
+                    if (opt.html().length === 0) {
+                        opt.html('<button id="settingBtn" class="btn btn-xs btn-warning " data-toggle="modal" data-target="#settingDialog">入口设定</button>&nbsp;&nbsp;' +
+                            '<button id="testBtn" class="btn btn-xs btn-warning " data-toggle="modal" data-target="#testDialog">测试</button>&nbsp;&nbsp;' +
+                            '<button id="startBtn" class="btn btn-xs btn-info">启动</button>&nbsp;&nbsp;' +
+                            '<button id="stopBtn" class="btn btn-xs btn-info">停止</button>&nbsp;&nbsp;' +
+                            '<button id="removeBtn" data-target="#removeDialog" class="btn btn-xs btn-danger">删除</button>&nbsp;&nbsp;'
+                        );
+
+                        $("#settingBtn").bind("click", {
+                                taskId: taskId,
+                                site_name: site_name
+                            },
+                            initSetting);
+
+                        $("#testBtn").bind("click", {
+                                taskId: taskId
+                            },
+                            initConfig);
+
+                        $("#startBtn").bind("click", {
+                                taskId: taskId
+                            },
+                            startTask);
+
+                        $("#stopBtn").bind("click", {
+                                taskId: taskId
+                            },
+                            stopTask);
+
+                        $("#removeBtn").bind("click", {
+                                taskId: taskId
+                            },
+                            removeTask);
+                    }
+                },
+                hideOpt: function (row) {
+                    this.row = row;
+                    var opt = $("#tr_" + row.toString()).children("td").last();
+                    if (opt.html().length !== 0) {
+                        // unbind event
+                        opt.html('');
+                    }
+                },
+                search: function () {
+                    initMain(this);
+                    getPaginator(this);
+                }
+            },
+            ready: function () {
+                initMain(this);
+                getPaginator(this);
+            },
+            watch: {
+                page: function () {
+                    initMain(this);
+                }
+            }
+        });
+
+        var testVue = new Vue({
+            el: "#testDialog",
+            data: {
+                taskId: -1,
+                start_url: "",
+                nodes: [],
+                nodes_cnt: 0,
+                schame_id: "",
+                spider_json: "loading ... ",
+                spider_code: "making ... ",
+                spider_code_ret: "",
+                msg: "请点击生成代码按钮。"
+            },
+            methods: {
+                ready: function () {
+                    initNodes(this);
+                },
+                spiderTest: function () {
+                    window.location.href = '/webSpider/spiderTest/?taskId=' + this.taskId;
+                }
+            },
+            watch: {}
+        });
+
+        var settingVue = new Vue({
+            el: "#settingDialog",
+            data: {
+                taskId: -1,
+                start_url: "",
+                info_flag: "01",
+                info_flag_options: INFO_FLAG_OPTIONS,
+                channel_name: "",
+                proxy_enable: "false",
+                site_name: "",
+                max_interval: 3,
+                filename: "",
+                function_description: "",
+                schame_id: "",
+                data_db: "",
+                msg: "请输入信息，点击“保存”按钮。"
+            },
+            methods: {
+                save: function () {
+                    saveSetting(this);
+                }
+            }
+        });
+    </script>
+{% endblock body_tail %}

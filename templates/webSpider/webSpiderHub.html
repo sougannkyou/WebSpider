@@ -1,0 +1,1230 @@
+{% extends 'base_backend_frameless.html' %}
+{% load static %}
+
+{% block header_tail %}
+    <style>
+        [v-cloak] {
+            display: none;
+        }
+
+        .bg {
+            background-color: yellow;
+        }
+
+        body {
+            background-color: #eee;
+        }
+
+        div, input, iframe, label {
+            border-radius: 5px;
+        }
+
+        img.loading {
+            margin-top: 400px;
+            margin-left: 800px;
+            width: 50px;
+            height: 50px;
+        }
+
+        input {
+            padding: 2px 0 2px 10px;
+            line-height: 100%;
+        }
+
+        h3, h4 {
+            display: inline;
+            font-family: 'Source Sans Pro', sans-serif;
+        }
+
+        a.nav-mark {
+            outline: blue solid 3px;
+        }
+
+        a.btn-nav {
+            margin: 2px;
+        }
+
+        select {
+            padding: 0 0 0 20px;
+        }
+
+        hr {
+            margin-top: 5px;
+            margin-bottom: 5px
+        }
+
+        span {
+            color: white;
+        }
+
+        span.error-msg {
+            background-color: red;
+        }
+
+        iframe {
+            width: 95%;
+            height: 800px;
+            margin-left: 100px;
+            border: 1px dashed dodgerblue;
+        }
+
+        .iframe-full {
+            width: 95%;
+            height: 840px;
+            margin-left: 100px;
+            border: 1px dashed dodgerblue;
+        }
+
+        /*
+        table {
+            position: relative;
+            overflow-y: scroll;
+            table-layout: fixed;
+        }
+
+        thead {
+            width: 100%;
+            position: absolute;
+            background-color: skyblue;
+        }
+
+        tbody {
+            display: block;
+            height: 150px;
+            width: 100%;
+            overflow-y: scroll;
+        }
+        */
+        .menu {
+            position: absolute;
+            left: 10px;
+            top: 120px;
+            background-color: skyblue;
+            width: 90px;
+            height: 280px;
+            border: 2px solid deepskyblue;
+            border-radius: 7px;
+        }
+
+        .nextPage {
+            border-radius: 5px;
+        }
+
+        .required {
+            border: 1px dashed red;
+        }
+
+        .output-hubs {
+            border: 2px dashed deepskyblue;
+        }
+
+        .output-ctime {
+            border: 2px dashed dodgerblue;
+        }
+
+        .output-nextPage {
+            border: 2px dashed cornflowerblue;
+        }
+
+        .debug {
+            border: 2px dashed red;
+        }
+
+        .xpath-list {
+            height: 70px;
+            overflow-y: scroll;
+            border: 1px solid deepskyblue;
+        }
+
+        .result-title {
+            background-color: skyblue;
+            padding: 7px;
+        }
+
+        .result {
+            height: 165px;
+            padding: 2px 20px 2px 20px;
+            overflow-y: scroll;
+            border: 1px solid deepskyblue;
+        }
+
+        .btn-hubs {
+            border: 1px dashed dodgerblue;
+        }
+    </style>
+{% endblock header_tail %}
+
+{% block section_content %}
+    {% verbatim %}
+    <!-- Main content -->
+    <div id="main" class="inverse" v-cloak>
+        <div class="box box-info">
+            <div class="box-inner">
+                <div class="box-header with-border" style="border-color: deepskyblue;height:50px;padding-top:7px;">
+                    <div class="form-group col-md-11">
+                        <h4>当前地址&nbsp;&nbsp;</h4>
+                        <input value="[[ hub_url ]]" title="起始页：[[ start_url ]]" style="height:35px;width:90%"
+                               v-model="hub_url" placeholder="列表页url" readonly>
+                    </div>
+                    <div class="form-group pull-right">
+                        <!-- navigator -->
+                        <navigator v-bind:main_show="false"
+                                   v-bind:task_id="taskId"
+                                   v-bind:current_level="level"
+                                   v-bind:has_detail="hasDetail"
+                                   v-bind:levels="navInfo.levels">
+                        </navigator>
+                    </div>
+                </div>
+                <div class="box-body" style="padding: 10px 20px 30px 10px;">
+                    <!-- menu -->
+                    <div class="menu">
+                        <h5>&nbsp;&nbsp;列表页设定</h5>
+                        <!--
+                        <input type="text" v-bind:readonly="isNodeReadOnly" v-model="node" value="[[ node ]]"
+                               placeholder="节点名称" v-bind:class="[ isNodeReadOnly ? '' : 'required']"
+                               style="width:80px;margin-left:3px;">
+                               -->
+                        <div style="margin-left:3px;margin-right:3px;">
+                            <hr>
+                            <!--
+                            <h5>父节点</h5>
+                            <select class="form-control required" v-model= "parent_node" v-on:click="select('node')"
+                                    style="height:28px;text-align:left">
+                                <option v-for="option in nodes_options" v-bind:value="option.name"
+                                        style="text-align:left">
+                                    [[ option.name ]]
+                                </option>
+                            </select>
+                            <hr>
+                            <h5>选择模式</h5>
+                            -->
+                            <input v-model="select_mode" name="select_mode" type="radio"
+                                   value="all">&nbsp;框内全选<br>
+                            <input v-model="select_mode" name="select_mode" type="radio"
+                                   value="multi" checked>&nbsp;联想多选<br>
+                            <input v-model="select_mode" name="select_mode" type="radio"
+                                   value="single">&nbsp;频道单选
+                            <!--
+                            <hr>
+                            <input v-model="black_white" name="black_white" type="radio" value="white"
+                                   checked>&nbsp;白</input>
+                            <input v-model="black_white" name="black_white" type="radio"
+                                   value="black">&nbsp;黑</input>
+                            -->
+                            <hr>
+                            <input v-model="isResultShow" name="result" type="checkbox" value="isResultShow">
+                            选取结果<br>
+                            <input v-model="isXPathShow" name="debug" type="checkbox" value="isXPathShow">
+                            提取xpath<br>
+                            <input v-model="isDebugShow" name="debug" type="checkbox" value="isDebugShow">
+                            调试<br>
+                            <input v-model="isLoadJS" name="loadJS" type="checkbox" value="isLoadJS">
+                            加载js
+                            <hr>
+                            <button v-on:click="save" class="btn btn-md btn-primary"
+                                    style="margin-top:5px;margin-left:10px">保&nbsp;存
+                            </button>
+                            <!--
+                            <button v-on:click="reloadPage" class="btn btn-xs btn-primary"
+                                    style="margin-top:5px;">重新加载
+                            </button>
+                            -->
+                        </div>
+                    </div>
+                    <!-- menu end -->
+                    <!-- webSpider 同源，允许嵌入iframe脚本运行 -->
+                    <iframe id="html" sandbox="allow-same-origin allow-scripts"
+                            v-bind:class="[ !isXPathShow && !isDebugShow && !isResultShow ? 'iframe-full' : '']"
+                            srcdoc="[[ html_src ]]">
+                    </iframe>
+                    <!-- eSpider
+                    <iframe id="html" scrolling="yes" v-on:scroll="scroll"
+                            v-bind:class="[ !isXPathShow && !isDebugShow && !isResultShow ? 'iframe-full' : '']"
+                            v-bind:src="hub_url">
+                    </iframe>
+                    -->
+                </div>
+                <div class="box-footer with-border" v-show="isXPathShow || isDebugShow || isResultShow"
+                     style="border-color:deepskyblue;position:fixed;bottom:10px;width:98.5%;padding:10px 20px 20px 10px;">
+                    <div v-show="isDebugShow" class="input-group col-md-12" style="margin-bottom:5px;">
+                        <button v-on:click="debug" class="btn btn-danger pull-left" style="">&nbsp;查看匹配结果
+                        </button>
+                        <input class="debug col-md-11" value="[[ debug_xpath ]]" style="height:35px;"
+                               v-model="debug_xpath" placeholder="请输入xpath,点击“查看匹配结果”按钮。">
+                    </div>
+                    <div v-show="isXPathShow" class="xpath-list" style="margin-bottom:5px;">
+                        <div class="input-group col-md-12">
+                            <span v-on:click="select('hub')" class="input-group-addon"
+                                  style="background-color: deepskyblue;">列&nbsp;&nbsp;表&nbsp;&nbsp;页</span>
+                            <input v-model="hub_xpath" value="[[ hub_xpath ]]" type="text" placeholder="必须"
+                                   v-bind:class="[ select_item == 'hub' ? 'output-hubs form-control' : 'form-control']">
+                            <span class="input-group-addon">
+                                <span v-if="select_item == 'hub'"
+                                      v-bind:class="[ selector_list_msg.substr(0,2) === '错误' ? 'badge error-msg' : 'badge']">
+                                    [[ selector_list_msg ]]
+                                </span>
+                                <span v-else class="badge">...</span>
+                            </span>
+                            <!--
+                            <input v-model="hub_jquery_selector" value="[[ hub_jquery_selector ]]" type="text"
+                                   class="form-control" readonly>
+                             -->
+                        </div>
+                        <!--
+                        <div class="input-group col-md-12">
+                                <span v-on:click="select('ctime')" class="input-group-addon"
+                                      style="background-color:dodgerblue;">发布时间</span>
+                            <input v-model="ctime_xpath" value="[[ ctime_xpath ]]" type="text" placeholder="可选"
+                                   v-bind:class="[ select_item == 'ctime' ? 'output-ctime form-control' : 'form-control']">
+                            <span class="input-group-addon" style="background-color:dodgerblue;">url时间</span>
+                            <select class="col-md-2 form-control" v-model="url_time_format">
+                                <option v-for="option in time_format_options" v-bind:value="option.value">
+                                    [[ option.name ]]
+                                </option>
+                            </select>
+                            <span class="input-group-addon bg">
+                                    <span v-if="select_item == 'ctime'" class="badge">
+                                        [[ selector_list_msg ]]
+                                    </span>
+                                    <span v-else class="badge">...</span>
+                                </span>
+                        </div>
+                        -->
+                        <div class="input-group col-md-12">
+                            <span v-on:click="select('nextPage')" class="input-group-addon bg"
+                                  style="background-color:cornflowerblue;">翻&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;页</span>
+                            <input v-model="nextPage_xpath" value="[[ nextPage_xpath ]]" type="text"
+                                   placeholder="可选"
+                                   v-bind:class="[ select_item == 'nextPage' ? 'output-nextPage form-control' : 'form-control']">
+                            <span class="input-group-addon bg" style="background-color:cornflowerblue;">最大页数</span>
+                            <input v-model="max_page" value="[[ max_page ]]" type="text"
+                                   class="form-control" placeholder="可选">
+                            <span class="input-group-addon bg">
+                                    <span v-if="select_item == 'nextPage'" class="badge">
+                                        [[ selector_list_msg ]]
+                                    </span>
+                                    <span v-else class="badge">...</span>
+                                </span>
+                            <!--
+                            <input v-model="nextPage_jquery_selector" value="[[ nextPage_jquery_selector ]]"
+                                   type="text" class="form-control" readonly>
+                             -->
+                        </div>
+                        <div class="input-group col-md-12" v-for="sel in selector_list">
+                            <span class="input-group-addon bg">xpath表达式</span>
+                            <input v-model="sel.xpath" value="[[ sel.xpath ]]" type="text"
+                                   class="form-control" placeholder="点击获取的xpath" readonly>
+                            <!--
+                            <span class="input-group-addon bg">选择器</span>
+                            <input v-model="sel.jquery_selector" value="[[ sel.css_selector ]]" type="text"
+                                   class="form-control" placeholder="选择器" readonly>
+                             -->
+                        </div>
+                    </div>
+                    <div v-show="isResultShow" class="col-md-12 result-title">
+                        <div class="col-md-2" style="height:20px;">选取结果&nbsp;No.&nbsp;
+                            <span class="badge">共 [[ hubs_cnt ]] 条</span>
+                        </div>
+                        <div class="col-md-4">链接文本</div>
+                        <div class="col-md-6">链接url</div>
+                    </div>
+                    <div v-show="isResultShow" class="col-md-12 result">
+                        <table class="table table-striped table-hover table-condensed" style="table-layout:fixed;">
+                            <tbody>
+                            <tr id="tr_hubs_[[ $index ]]" v-for="hub in hubs" v-on:click="match_result($index)">
+                                <td class="col-md-2" style="padding-left:55px">[[ hub.index ]]</td>
+                                <td class="col-md-4">[[ hub.text ]]</td>
+                                <td class="col-md-6" style="padding-left:20px">[[ hub.href ]]</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Main end. -->
+    <!-- loading start -->
+    <div id="loadingModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+         data-backdrop="static" data-keyboard="false">
+        <!-- eSpider ./static/images/loading.gif -->
+        <img src="/static/webSpider/images/loading.gif" class="loading">
+    </div>
+    <!-- loading end. -->
+
+    <!-- remove modal-dialog -->
+    <div id="gotoDialog" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+         data-backdrop="static" data-keyboard="true">
+        <div class="modal-dialog">
+            <div class="modal-content" style="margin-top:300px;width:200px;border-radius:7px">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"
+                            style="color:red">&times;
+                    </button>
+                    <h4 class="modal-title">下一级进入</h4>
+                </div>
+                <div class="modal-body" style="height: 70px">
+                    <a v-on:click="nextPage('hub')" class="btn btn-bg btn-primary btn-nav" title="列表页"
+                       style="margin-left:30px">
+                        <i class="fa fa-list"></i>
+                    </a>
+                    <a v-on:click="nextPage('detail')" class="btn btn-bg btn-success btn-nav" title="详情页"
+                       style="margin-left:30px">
+                        <i class="fa fa-file-text-o"></i>
+                    </a>
+                </div>
+                <div class="modal-footer"><h5 style="color:red" class="pull-left">请确认已保存操作结果!</h5></div>
+            </div>
+        </div>
+    </div>
+    <!-- remove dialog end. -->
+    {% endverbatim %}
+{% endblock section_content %}
+
+{% block jquery_js %}
+    <!-- vue.js -->
+    <script src="{% static 'plugins/vue1/vue.js' %}"></script>
+{% endblock jquery_js %}
+
+{% block body_tail %}
+    <script type="text/javascript" src="{% static 'webSpider/js/csrf.js' %}"></script>
+    <script type="text/javascript" src="{% static 'webSpider/js/common.js' %}"></script>
+    <script type="text/javascript" src="{% static 'webSpider/js/selector.js' %}"></script>
+    <script type="text/javascript" src="{% static 'webSpider/js/vue_component.js' %}"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var h = $(window).height();
+            $('#html').attr('height', h * 0.80);
+            //console.log("window", h, h * 0.8);
+            if (window.localStorage.getItem('ELECTRON_START')) { // 客户端版跳过下面步骤
+                console.log("eSpider启动");
+                return;
+            }
+
+            var xgsjTaskId = getQueryString("xgsjTaskId");
+            if (!isNullOrEmpty(xgsjTaskId) && xgsjTaskId !== '-1') { // 从星光数据启动
+                var xgsj_opt = { // 从星光数据获取启动参数
+                    url: HOST + '/webSpider/getXGJSParameterAPI/',
+                    type: 'GET',
+                    data: {
+                        xgsjTaskId: xgsjTaskId
+                    },
+                    dataType: "json",
+                    error: function (xhr, err) {
+                        console.error("[xpath] document ready GET", err);
+                        alert("从星光数据平台获取启动参数失败。");
+                        return false;
+                    },
+                    success: function (data, status) {
+                        console.log("[xpath] 从星光数据平台获取启动参数:", data);
+                        var start_url = data['start_url'];
+                        var user_id = 'admin'; //data['userId'];
+                        var interval_time = data['interval_time'];
+                        var clock_time = data['clock_time'];
+                        var last_modify_time = data['last_modify_time'];
+                        var dedup_expireat = data['dedup_expireat'];
+
+                        if (isNullOrEmpty(start_url)) {
+                            alert("从星光数据获取启动参数失败：无法获取入口url。");
+                            return false;
+                        }
+
+                        var opt = { // 转换星光数据启动参数为taskID
+                            url: '/webSpider/addTaskInfoAPI/',
+                            type: 'POST',
+                            data: {
+                                xgsjTaskId: xgsjTaskId,
+                                start_url: start_url,
+                                user_id: user_id,
+                                interval_time: interval_time,
+                                clock_time: clock_time,
+                                last_modify_time: last_modify_time,
+                                dedup_expireat: dedup_expireat,
+                                config_status: -1   // 停用0  启用1 不变-1
+                            },
+                            dataType: "json",
+                            error: function (xhr, err) {
+                                console.error("[xpath] initTaskInfoAPI post", err);
+                            },
+                            success: function (data, status) {
+                                console.log("[xpath] initTaskInfoAPI", data);
+                                mainVue.taskId = parseInt(data['taskId']);
+                                mainVue.start_url = start_url;
+                                mainVue.hub_url = start_url;  // watch触发
+                                mainVue.level = 0;            // watch触发
+                            }
+                        };
+                        $.ajaxSetup({
+                            data: {csrfmiddlewaretoken: '{{ csrf_token }}'}
+                        });
+                        $.ajax(opt);
+                    }
+                };
+                send(xgsj_opt);
+
+            } else { // web版独立启动
+                var taskId = getQueryString("taskId");
+                var level = getQueryString("level");
+                console.log("[xpath] 自系统独立启动( taskId:", taskId, "level:", level, ")");
+
+                if (isNullOrEmpty(taskId) || isNullOrEmpty(level)) {
+                    alert("taskId和level不能为空！");
+                    window.location.href = "/webSpider/main/";
+                    return false;
+                } else {
+                    mainVue.taskId = parseInt(taskId);
+                    mainVue.level = parseInt(level); // watch触发
+                }
+            }
+        });
+
+
+        function restoreHubs(obj) {
+            //console.log("[xpath] restoreHubs", obj.start_url);
+            var opt = {
+                url: HOST + '/webSpider/restoreHubsAPI/',
+                type: 'GET',
+                data: {
+                    taskId: obj.taskId,
+                    level: obj.level
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    callError("[xpath] restoreHubsAPI GET", err);
+                },
+                success: function (data, status) {
+                    $('#loadingModal').modal('hide'); // 关闭遮盖
+                    if (!isNullOrEmpty(data['ret'])) {
+                        //console.log("[xpath] restoreHubs success", data['ret']['isLoadJS']);
+                        //obj.isLoadJS = data['ret']['isLoadJS'];
+                        obj.select_mode = data['ret']['select_mode'];
+                        if (obj.select_mode === "single") { // 单选
+                            obj.hubs = data['ret']['hubs'];
+                            obj.hubs_cnt = data['ret']['hubs_cnt'];
+                            for (var i = 0; i < obj.hubs_cnt; i++) {
+                                $('iframe').contents().find("a[href='" + obj.hubs[i].href + "']").css("background-color", "deepskyblue");
+                            }
+                        } else { // 多选 或 框内全选
+                            obj.hub_xpath = data['ret']['hub_xpath'];
+                            matchXPath(obj.hub_xpath, "background-color", "deepskyblue");
+                            hubXPath2Results(obj, "deepskyblue");
+
+                            obj.ctime_xpath = data['ret']['ctime_xpath'];
+                            matchXPath(obj.ctime_xpath, "background-color", "dodgerblue");
+
+                            obj.nextPage_xpath = data['ret']['nextPage_xpath'];
+                            matchXPath(obj.nextPage_xpath, "background-color", "cornflowerblue");
+
+                            obj.max_page = data['ret']['max_page'];
+                            obj.url_time_format = data['ret']['url_time_format'];
+                        }
+                    }
+                }
+            };
+
+            send(opt);
+        }
+
+        <!-- main -->
+        function _clearInfo(obj) {
+            obj.hub_xpath = "";
+            obj.hub_jquery_selector = "";
+            obj.ctime_xpath = "";
+            obj.ctime_jquery_selector = "";
+            obj.nextPage_xpath = "";
+            obj.nextPage_jquery_selector = "";
+            obj.jquery_selector = "";
+
+            for (var i = 0; i < obj.hubs_cnt; i++) {
+                obj.hubs.shift();
+            }
+            obj.hubs_cnt = 0;
+
+            obj.black_white = "white";
+            //node,parent_node保留，不清除。
+
+            for (var j = 0; j < obj.selector_list_cnt; j++) {
+                obj.selector_list.shift();
+            }
+            obj.selector_list_cnt = 0;
+
+            obj.hubs_cnt = 0;
+            obj.msg = "";
+        }
+
+        function changeEncode(obj) {
+            if (obj.encoding === "utf-8") {
+                obj.encoding = "gbk";
+            } else if (obj.endcoding === "gbk") {
+                obj.encoding = "gb2312";
+            } else {
+                obj.encoding = "utf-8";
+            }
+        }
+
+        function getHubUrl(obj) {
+            if (isNullOrEmpty(obj.level) || obj.taskId <= 0) {
+                console.error("hub_url获取失败！", obj.taskId, obj.level);
+                return false;
+            }
+
+            var opt = {
+                url: HOST + '/webSpider/getHubUrlAPI/',
+                type: 'GET',
+                data: {
+                    taskId: obj.taskId,
+                    level: obj.level
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    console.error("[xpath] getHubUrlAPI GET", err);
+                },
+                success: function (data, status) {
+                    console.log("[xpath] getHubUrlAPI success.", data);
+                    if (!isNullOrEmpty(data["hub_url"])) {
+                        if (obj.hub_url !== data["hub_url"]) {
+                            console.log("[xpath] getHubUrlAPI success");
+                            obj.hub_url = data["hub_url"];
+                        }
+                    }
+                }
+            };
+            send(opt);
+        }
+
+        function loadHtml(obj) {
+            if (window.localStorage.getItem('ELECTRON_START')) {
+                eSpider_loadHtml(obj); // 客户端版
+            } else {
+                webSpider_loadHtml(obj); // web版
+            }
+        }
+
+        function eSpider_loadHtml(obj) { // ---- eSpider ----
+            if (obj.hub_url === "") {
+                return;
+            }
+
+            _clearInfo(obj);
+            _getNavInfo(obj);
+            $("#html").on({
+                load: function () {
+                    restoreHubs(obj);
+                }
+            });
+        }
+
+
+        function webSpider_loadHtml(obj) {  // ---- webSpider ----
+            if (obj.hub_url === "") {
+                return;
+            }
+            $('#loadingModal').modal('show');
+
+            //console.log("[xpath] loadHtml ... ");
+            _clearInfo(obj);
+            _getNavInfo(obj);
+            //changeEncode(obj);
+            var opt = {
+                url: HOST + '/webSpider/getLoadJSAPI/',
+                type: 'GET',
+                data: {
+                    hub_detail: 'hub',
+                    taskId: obj.taskId,
+                    level: obj.level
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    callError("[xpath] loadHtml GET", err);
+                },
+                success: function (data, status) {
+                    console.log("[xpath] loadHtml", data);
+                    obj.isLoadJS = obj.isLoadJS || data["isLoadJS"];
+                    _loadHtml(obj);
+                }
+            };
+
+            send(opt);
+        }
+
+        function _loadHtml(obj) {
+            var opt = {
+                url: HOST + '/webSpider/getHtmlAPI/',
+                type: 'GET',
+                data: {
+                    url: obj.hub_url,
+                    load_js: obj.isLoadJS,
+                    taskId: obj.taskId,
+                    type: 'hubs',
+                    level: obj.level
+                },
+                dataType: "json",
+                error: function (xhr, err) {
+                    callError("[xpath] getHtmlAPI GET", err);
+                },
+                success: function (data, status) {
+                    obj.site_name = data["title"];
+                    obj.encoding = data["encoding"];
+                    obj.html_src = data["html"];
+                    $("#html").on({
+                        load: function () {
+                            console.log("[xpath] loadHtml -> restoreHubs");
+                            restoreHubs(obj);
+                        },
+                        error: function () {
+                            alert("iframe load errro!");
+                        }
+                    });
+                    //$("#html").scroll(function () {
+                    //    console.log("[xpath] scroll ...");
+                    //});
+                }
+            };
+            send(opt);
+        }
+
+
+        function saveInfo(obj) {
+            obj.select_item = "hub";
+            if (obj.node === "" ||
+                obj.select_mode === "single" && obj.hubs.length === 0 ||
+                (obj.select_mode === "all" || obj.select_mode === "multi" ) && obj.hub_xpath === "") {
+                alert("节点名称 不能为空；多选（全选）时，xpath不能为空；单选时，选取结果不能为空。");
+                return false;
+            }
+            if (obj.selector_list_msg.substr(0, 2) === "错误") {
+                alert("列表页xpath表达式有错误，不能保存。");
+                return false;
+            }
+
+            var opt = {
+                url: HOST + '/webSpider/hubXPathAPI/',
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'taskId': obj.taskId,
+                    'user_id': obj.user_id,
+                    'start_url': obj.start_url,
+                    'site_name': obj.site_name,
+                    'encoding': obj.encoding,
+                    'hub_url': obj.hub_url,
+                    'select_mode': obj.select_mode,
+                    'isLoadJS': obj.isLoadJS,
+                    'level': obj.level,
+                    'hubs': JSON.stringify(obj.hubs),
+                    'hub_xpath': obj.hub_xpath,
+                    'hub_jquery_selector': obj.hub_jquery_selector,
+                    'ctime_xpath': obj.ctime_xpath,
+                    'ctime_jquery_selector': obj.ctime_jquery_selector,
+                    'nextPage_xpath': obj.nextPage_xpath,
+                    'nextPage_jquery_selector': obj.nextPage_jquery_selector,
+                    'max_page': obj.max_page,
+                    'url_time_format': JSON.stringify(obj.url_time_format),
+                    'node': obj.node,
+                    'parent_node': obj.parent_node,
+                    'black_white': obj.black_xpath
+                },
+                error: function (xhr, err) {
+                    console.error('[xpath] saveInfo post error:', err);
+                },
+                success: function (data, status) {
+                    console.log('[xpath] saveInfo post', data);
+                    alert('保存成功,双击链接进入下一级目录。');
+                    _getNavInfo(obj);
+                }
+            };
+            send(opt);
+        }
+
+        // xpath选择器
+        (function ($) {
+            $.fn.getQuery = function (options) {
+                var xpath = getXPath(this, '');
+                var full_xpath = getFullXPath(this, '');
+                var clear_jquery_selector = getClearJQSelector(this, '');
+                var jquery_selector = getJQSelector(this, '');
+                var css_selector = getCSSSelector(this, '');
+
+                ret = {
+                    element: this,
+                    xpath: '//' + xpath.replace(/\/tbody\//g, "//"),
+                    full_xpath: full_xpath.replace(/\/tbody\//g, "//"),
+                    jquery_selector: jquery_selector.replace(/\/tbody\//g, "//"),
+                    css_selector: css_selector.replace(/> tbody >/g, ""),
+                    clear_jquery_selector: clear_jquery_selector
+                };
+                return ret
+            };
+
+            $.fn.getQuery2 = function () {
+                var href = "";
+                if (this.get(0).tagName.toLowerCase() === "a") {
+                    href = this.attr("href");
+                } else {
+                    href = this.parents("a").attr("href");
+                }
+
+                ret = {
+                    href: href
+                };
+                return ret
+            };
+
+        })(jQuery);
+
+        $('iframe').on({
+            load: function () {
+                // 双击前进
+                $(this).contents().find("body").on('dblclick', function (event) {
+                    console.log("[xpath] dblclick");
+                    mainVue.select_item = "hub";
+
+                    var ret = Selector2(event);
+                    var href = ret.href;
+
+                    if (href.indexOf("http") === -1 && href.indexOf("//") === -1) {
+                        href = mainVue.home_page + ret.href;
+                    }
+
+                    gotoVue.href = href;
+                    $('#gotoDialog').modal('show');
+                });
+
+                // 单击选取
+                $(this).contents().find("body").on('click', function (event) {
+                    event.stopPropagation();
+                    event.preventDefault();
+
+                    if (mainVue.select_item === "node") {
+                        //mainVue.node = getNodeName(event);
+                        return false;
+                    }
+
+                    var ret = Selector(event);
+                    console.log("[xpath] Selector:", ret);
+                    mainVue.selector_list.push(ret);
+                    mainVue.selector_list_cnt++;
+
+                    if (mainVue.select_mode === "all" || mainVue.select_mode === "multi") { // 多选，框内全选
+                        if (mainVue.select_mode === "all") {
+                            if (mainVue.select_item === "hub") {
+                                if (getLastTarget(ret.xpath) !== "a") {
+                                    mainVue.hub_xpath = ret.xpath + "//a";
+                                    matchXPath(mainVue.hub_xpath, "background-color", "deepskyblue");
+                                    //mainVue.hub_jquery_selector = ret.css_selector + " a";
+                                    //$(this).find(mainVue.hub_jquery_selector).css("background-color", "deepskyblue");
+                                }
+                            }
+                        } else { // multi
+                            if (mainVue.select_item === "hub") {
+                                if (getLastTarget(ret.xpath) !== "a") {
+                                    var closedA = getClosestA(ret.full_xpath);
+                                    if (getLastTarget(closedA) === "a") {
+                                        ret.xpath = closedA;
+                                        matchXPath(closedA, "outline", "2px dashed purple");
+                                    } else {
+                                        alert("选取“列表页”时，请选择链接元素。");
+                                        return false;
+                                    }
+                                    //console.log("[xpath] <a>标签:", ret.css_selector);
+                                    //$("#html").contents().find(ret.css_selector).parents("a").css("outline", "3px dashed purple");
+                                    //$(this).contents().find(ret.css_selector).parents("a").css("outline", "2px dashed red");
+                                    //console.log("[xpath]", $(ret.css_selector).closest('a'));
+                                    //return false;
+                                }
+                                mainVue.hub_xpath = margeXPath(mainVue.hub_xpath, ret.xpath);
+                                matchXPath(mainVue.hub_xpath, "background-color", "deepskyblue");
+                                //mainVue.hub_jquery_selector = margeCSSSelector(mainVue.hub_jquery_selector, ret.css_selector);
+                                //$(this).find(mainVue.hub_jquery_selector).css("background-color", "deepskyblue");
+                            }
+
+                            if (mainVue.select_item === "ctime") {
+                                mainVue.ctime_xpath = margeXPath(mainVue.ctime_xpath, ret.xpath);
+                                matchXPath(mainVue.ctime_xpath, "background-color", "dodgerblue");
+                                //mainVue.ctime_jquery_selector = margeCSSSelector(mainVue.ctime_jquery_selector, ret.css_selector);
+                                //$(this).find(mainVue.ctime_jquery_selector).css("background-color", "dodgerblue"); // border可能会引起原网页布局崩溃。
+                            }
+
+                            if (mainVue.select_item === "nextPage") {
+                                mainVue.nextPage_xpath = margeXPath(mainVue.nextPage_xpath, ret.xpath);
+                                matchXPath(mainVue.nextPage_xpath, "background-color", "cornflowerblue");
+                                //mainVue.nextPage_jquery_selector = margeCSSSelector(mainVue.nextPagee_jquery_selector, ret.css_selector);
+                                //$(this).find(mainVue.nextPage_jquery_selector).css("background-color", "cornflowerblue");
+                            }
+                        }
+
+
+                        // 清空选择结果
+                        //for (var j = 0; j < mainVue.hubs_cnt; j++) {
+                        //  mainVue.hubs.shift();
+                        //}
+                        //mainVue.hubs_cnt = 0;
+
+                        // 添加选择结果
+                        //$(this).find(mainVue.hub_jquery_selector).each(
+                        //    function (i, e) {
+                        //        var $element_clone = $(e).clone();
+                        //        $element_clone.find("script, style").remove();
+                        //        $element_clone.find("br").after("\n");
+                        //        var text = $element_clone.text().replace(/[\r\n]/g, "").replace(/(^\s+)|(\s+$)/g, "");
+                        //        mainVue.hubs.push({
+                        //            index: i + 1,
+                        //            href: $(e).attr("href"),
+                        //            text: text
+                        //        });
+                        //        mainVue.hubs_cnt++;
+                        //    }
+                        //);
+
+                    } else { // 单选模式
+                        if (mainVue.select_item === "hub") {
+                            if (mainVue.node !== "root") {
+                                alert("单选模式下，只能选取“入口列表页”项目。");
+                                return false;
+                            } else {
+                                if (getLastTarget(ret.xpath) !== "a") {
+                                    var closedA = getClosestA(ret.full_xpath);
+                                    if (getLastTarget(closedA) === "a") {
+                                        ret.xpath = closedA;
+                                        matchXPath(closedA, "outline", "2px dashed purple");
+                                    } else {
+                                        alert("选取“列表页”时，请选择链接元素。");
+                                        return false;
+                                    }
+                                }
+
+                                var href = ret.element.attr("href");
+                                var text = ret.element.text().replace(/[\r\n]/g, "").replace(/(^\s+)|(\s+$)/g, "");
+
+                                var hasHref = false;
+                                var i = 0;
+                                for (; i < mainVue.hubs_cnt; i++) {
+                                    if (mainVue.hubs[i]['href'] === href) {
+                                        hasHref = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!hasHref) {
+                                    $(this).find(ret.css_selector).css("background-color", "deepskyblue");
+
+                                    mainVue.hubs.push({
+                                        index: mainVue.hubs_cnt + 1,
+                                        href: href,
+                                        text: text
+                                    });
+                                    mainVue.hubs_cnt++;
+                                } else {
+                                    $(this).find(ret.css_selector).css("background-color", "white");
+                                    //console.log("[xpath] single", mainVue.hubs, i);
+                                    mainVue.hubs.splice(i, 1);
+                                    mainVue.hubs_cnt--;
+                                    //console.log("[xpath] single", mainVue.hubs, mainVue.hubs_cnt);
+                                }
+                            }
+                        }
+                    }
+                    return false;
+                });
+
+                var my_timer;
+                var org_style = "";
+                $(this).contents().find("body").on('mouseover', function (event) {
+                    var body = $(this);
+                    window.clearTimeout(my_timer);
+                    my_timer = window.setTimeout(function () {
+                        ret = Selector(event);
+                        //org_style = $(this).find(ret.css_selector).css("background-color");
+                        org_style = body.find(ret.css_selector).css("outline");
+                        //$(this).find(ret.css_selector).css("background-color", "yellow");
+                        body.find(ret.css_selector).css("outline", "2px dashed blue");
+                        return false;
+                    }, 300);
+                });
+
+                $(this).contents().find("body").on('mouseout', function (event) {
+                    window.clearTimeout(my_timer);
+                    ret = Selector(event);
+                    //$(this).find(ret.css_selector).css("background-color", org_style);
+                    $(this).find(ret.css_selector).css("outline", org_style);
+                    return false;
+                });
+            }
+        });
+
+        function getHomePage(obj) {
+            if (obj.hub_url === "") {
+                return;
+            }
+            obj.home_page = obj.hub_url.replace(/(.+[\.\/][A-z]+\.[A-z]+)\/.+/, "$1");
+            if (obj.home_page.lastIndexOf("/") !== obj.home_page.length - 1) {
+                obj.home_page = obj.home_page + "/";
+            }
+        }
+
+        //$($('#html')[0].contentWindow).scroll(function () {
+        //    consol.log("[xpath] scrollBottomTest", "scroll ... ");
+        //    var $this = $(this),
+        //        viewH = $(this).height(),//可见高度
+        //        contentH = $(this).get(0).scrollHeight,//内容高度
+        //        scrollTop = $(this).scrollTop();//滚动高度
+        //   if (contentH - viewH - scrollTop <= 100) { //到达底部100px时,加载新内容
+        //       //if (scrollTop / (contentH - viewH) >= 0.95) { //到达底部100px时,加载新内容
+        //       consol.log("[xpath] scrollBottomTest", "到达底部100px");
+        //   }
+        //});
+        function hubXPath2Results(obj, backgroundColor) {
+            var results;
+
+            if (isNullOrEmpty(obj.hub_xpath)) {
+                return false;
+            }
+
+            // 清空原有选择结果
+            for (var j = 0; j < mainVue.hubs_cnt; j++) {
+                mainVue.hubs.shift();
+            }
+            mainVue.hubs_cnt = 0;
+
+            // 添加选择结果
+            var myFrame = document.getElementById("html").contentDocument;
+            try {
+                //console.log("[xpath] hubXPath2Results try", obj.hub_xpath);
+                results = myFrame.evaluate(obj.hub_xpath, myFrame, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                //console.log("[xpath] hubXPath2Results results", results);
+            }
+            catch (err) {
+                obj.selector_list_msg = XPATH_ERROR;
+                return false;
+            }
+
+            if (getLastTarget(obj.hub_xpath) !== 'a') {
+                obj.selector_list_msg = "错误: 选择不是a标签";
+                return false;
+            }
+
+            for (var i = 0, l = results.snapshotLength; i < l; i++) {
+                var e = results.snapshotItem(i);
+                $(e).css("background-color", backgroundColor);
+
+                var $e_clone = $(e).clone();
+                $e_clone.find("script, style").remove();
+                $e_clone.find("br").after("\n");
+
+                var text = $e_clone.text().replace(/[\r\n]/g, "").replace(/(^\s+)|(\s+$)/g, "");
+                obj.hubs.push({
+                    index: i + 1,
+                    href: $e_clone.attr("href"),
+                    text: text
+                });
+                obj.hubs_cnt++;
+            }
+            obj.selector_list_msg = "匹配 " + obj.hubs_cnt + " 条";
+            return true;
+        }
+        //----------------------------------------------------------------------------
+        Vue.config.delimiters = ['[[', ']]'];
+        //----------------------------------------------------------------------------
+        var mainVue = new Vue({
+            el: "#main",
+            data: {
+                taskId: -1,
+                xgsjTaskId: -1,
+
+                user_id: 'admin',
+                start_url: "",
+                hub_url: "",
+                html_src: "",
+                encoding: "utf8",
+                home_page: "",
+                site_name: "",
+                domain: "",
+                //options
+                node: "", // 节点名称,可手工设定，自动设定为 level1,level2,level3
+                parent_node: "",
+                select_mode: "multi",
+                black_white: "white", // 黑白名单
+                goto: "hub", // 双击前往
+
+                level: -1,  // 层级，决定node名字：level1，level2，level3
+                navInfo: {'levels_cnt': 0, 'levels': []}, // detail 共同,由此节点前往详情（mongodb objectId）
+                hasDetail: false,
+
+                rule_type: "xpath", // xpath or url
+                //output
+                hub_xpath: "",
+                hub_jquery_selector: "",
+                ctime_xpath: "",
+                ctime_jquery_selector: "",
+                nextPage_xpath: "",
+                nextPage_jquery_selector: "",
+                max_page: 1,
+                url_time_format: {date_format: '', regex: ''},
+                hubs: [],
+                hubs_cnt: 0,
+
+                select_item: "hub", // hub detail node
+                select_done: false,
+                selector_list: [],
+                selector_list_msg: "...",
+                selector_list_cnt: 0,
+                // debug
+                debug_xpath: "",
+                debug_selector: "",
+                // show
+                isXPathShow: true,
+                isDebugShow: false,
+                isResultShow: false,
+                isLoadJS: false,
+                isRemoveBtnDisabled: false,
+                isNodeReadOnly: true,
+
+                //使用url作为时间过滤
+                time_format_options: TIME_FORMAT_OPTIONS,
+
+                msg: ""
+            },
+            methods: {
+                ready: function () {
+                },
+                reloadPage: function () {
+                    console.log("[xpath] methods.reloadPage -> loadHtml");
+                    loadHtml(this);
+                },
+                save: function () {
+                    saveInfo(this);
+                },
+                select: function (item) {
+                    this.select_item = item;
+                    for (var i = 0; i <= this.selector_list_cnt; i++) {
+                        this.selector_list.shift();
+                    }
+                    this.selector_list_cnt = 0;
+                },
+                selectDone: function () {
+                    selectDone(this);
+                },
+                debug: function () {
+                    debugXPath(this.debug_xpath);
+                },
+                match_result: function (index) {
+                    var href = this.hubs[index].href;
+                    $('iframe').contents().find("a[href='" + href + "']").css("outline", "2px dashed #D02090");
+                    $("#tr_hubs_" + index.toString()).css("outline", "2px dashed #D02090");
+                },
+                scroll: function () {
+                    //console.log("[xpath] scroll ...");
+                }
+            },
+            ready: function () {
+                //if (this.hub_url === "") {
+                //    console.log("[xpath] ready call.");
+                //     this.hub_url = this.start_url;
+                //}
+                //getHomePage(this);
+            },
+            watch: {
+                hub_url: function () {
+                    getHomePage(this);
+                    console.log("[xpath] watch.hub_url -> loadHtml");
+                    loadHtml(this);
+                },
+                level: function () {
+                    console.log("[xpath] watch.level -> getHubUrl");
+                    getHubUrl(this);
+                },
+                isLoadJS: function () {
+                    console.log("[xpath] watch.isLoadJS -> loadHtml");
+                    loadHtml(this);
+                },
+                select_mode: function () {
+                    if (isNullOrEmpty(this.select_mode)) {
+                        this.select_mode = "multi";
+                    }
+
+                    if (this.select_mode === "single") {
+                        this.isXPathShow = false;
+                        this.isDebugShow = false;
+                        this.isResultShow = true;
+                    } else {
+                        this.isXPathShow = true;
+                        this.isDebugShow = false;
+                        this.isResultShow = false;
+                    }
+                },
+                select_item: function () {
+                    if (this.select_item !== "hub") {
+                        this.isResultShow = false;
+                    }
+                },
+                hub_xpath: function () {
+                    //console.log("[xpath] watch.hub_xpath -> hubXPath2Results");
+                    hubXPath2Results(this, "deepskyblue");
+                },
+                ctime_xpath: function () {
+                    if (this.ctime_xpath === "") {
+                        $('iframe').contents().find(this.ctime_jquery_selector).css("background-color", "white");
+                        this.ctime_jquery_selector = "";
+                    }
+                },
+                nextPage_xpath: function () {
+                    if (this.nextPage_xpath === "") {
+                        $('iframe').contents().find(this.nextPage_jquery_selector).css("background-color", "white");
+                        this.nextPage_jquery_selector = "";
+                    }
+                },
+                selector_list_cnt: function () {
+                    this.selector_list_msg = "点选 " + this.selector_list_cnt + " 次";
+                }
+            },
+            computed: {
+                node: function () {
+                    if (this.level === 0) {
+                        return "root";
+                    }
+                    return "level" + this.level;
+                },
+                parent_node: function () {
+                    if (this.level === 0) {
+                        return null;
+                    }
+                    if (this.level === 1) {
+                        return "root";
+                    }
+                    return "level" + (this.level - 1);
+                }
+            }
+        });
+
+        var gotoVue = new Vue({
+            el: "#gotoDialog",
+            data: {
+                user_id: 'admin',
+                goto: "hub",
+                href: ""
+            },
+            ready: function () {
+
+            },
+            methods: {
+                nextPage: function (target) {
+                    $("#gotoDialog").modal('hide');
+                    mainVue.goto = this.goto = target;
+                    if (mainVue.goto === "hub") { // hubs
+                        mainVue.level++;
+                        console.log("[xpath] gotoVue nextPage methods.");
+                        mainVue.hub_url = this.href;
+                    } else { // detail
+                        window.localStorage.setItem(mainVue.taskId, this.href);
+                        if (window.localStorage.getItem('ELECTRON_START')) {
+                            ipc_r.send('nav_msg', JSON.stringify({goto: 'detail', taskId: mainVue.taskId, level: -1})); // 客户端版
+                        } else {
+                            window.location.href = window.location.origin + "/webSpider/detail/?taskId=" + mainVue.taskId; // web版
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+{% endblock body_tail %}
